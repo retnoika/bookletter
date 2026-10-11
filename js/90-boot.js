@@ -7,6 +7,9 @@
 
   // ============ View mode ============
   var viewMode = 'page';  // 'page' or 'spread'
+  
+  // ============ Active sheet (1-based) ============
+  var activeSheet = 1;
 
   // ============ Toast ============
   var toastTimer = null;
@@ -41,14 +44,53 @@
     return 'Page ' + (idx + 1) + '.';
   }
 
-  // ============ Page strip rendering ============
+  // ============ Get active sheet from current page ============
+  function getSheetForPage(pageIdx) {
+    return Math.floor(pageIdx / 8) + 1;
+  }
+
+  // ============ Sheet tabs rendering ============
+  function renderSheetTabs() {
+    var container = document.getElementById('sheetTabs');
+    if (!container) return;
+    
+    var sheetCount = BL.S.pages.length / 8;
+    container.innerHTML = '';
+    
+    for (var k = 1; k <= sheetCount; k++) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sheet-tab' + (k === activeSheet ? ' active' : '');
+      btn.textContent = 'Sheet ' + k;
+      btn.dataset.sheet = k;
+      btn.addEventListener('click', (function(sheetNum) {
+        return function() {
+          activeSheet = sheetNum;
+          // Switch to first page of this sheet
+          BL.cur = (sheetNum - 1) * 8;
+          BL.sel = null;
+          renderAll();
+        };
+      })(k));
+      container.appendChild(btn);
+    }
+  }
+
+  // ============ Page strip rendering (filtered by active sheet) ============
   function renderStrip() {
     var strip = document.getElementById('strip');
     if (!strip) return;
     
+    // Update activeSheet based on current page
+    activeSheet = getSheetForPage(BL.cur);
+    
     strip.innerHTML = '';
     
-    for (var i = 0; i < BL.S.pages.length; i++) {
+    // Only show pages for the active sheet
+    var startPage = (activeSheet - 1) * 8;
+    var endPage = Math.min(startPage + 8, BL.S.pages.length);
+    
+    for (var i = startPage; i < endPage; i++) {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'thumb' + (i === BL.cur ? ' sel' : '');
@@ -83,9 +125,55 @@
       
       strip.appendChild(btn);
     }
+    
+    // Update page range label
+    var rangeLabel = document.getElementById('pageRangeLabel');
+    if (rangeLabel) {
+      var start = String(startPage + 1).padStart(2, '0');
+      var end = String(endPage).padStart(2, '0');
+      rangeLabel.textContent = start + '—' + end;
+    }
+    
+    // Update filmstrip scroll arrows
+    updateFilmstripArrows();
   }
 
   BL.renderStrip = renderStrip;
+  
+  // ============ Filmstrip scroll arrows ============
+  function updateFilmstripArrows() {
+    var strip = document.getElementById('strip');
+    var prevBtn = document.getElementById('stripPrev');
+    var nextBtn = document.getElementById('stripNext');
+    if (!strip || !prevBtn || !nextBtn) return;
+    
+    var canScrollLeft = strip.scrollLeft > 0;
+    var canScrollRight = strip.scrollLeft < strip.scrollWidth - strip.clientWidth - 1;
+    
+    prevBtn.hidden = !canScrollLeft;
+    nextBtn.hidden = !canScrollRight;
+  }
+  
+  function setupFilmstripScroll() {
+    var strip = document.getElementById('strip');
+    var prevBtn = document.getElementById('stripPrev');
+    var nextBtn = document.getElementById('stripNext');
+    if (!strip) return;
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function() {
+        strip.scrollBy({ left: -150, behavior: 'smooth' });
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function() {
+        strip.scrollBy({ left: 150, behavior: 'smooth' });
+      });
+    }
+    
+    strip.addEventListener('scroll', updateFilmstripArrows);
+  }
 
   // ============ Editor rendering ============
   function renderEditor() {
@@ -103,174 +191,187 @@
 
   function renderPageView(stage, container) {
     stage.classList.remove('spread-view');
-    
-    // Remove spread pages if any
-    var spreads = stage.querySelectorAll('.spread-page');
-    for (var i = 0; i < spreads.length; i++) {
-      spreads[i].remove();
-    }
-    
-    // Remove existing handles
-    var oldHandles = container.querySelector('.layer-handles');
-    if (oldHandles) oldHandles.remove();
-    
     container.innerHTML = '';
-    container.style.display = 'block';
-    container.appendChild(BL.renderPage(BL.cur, { edit: true, sel: BL.sel, nums: BL.S.nums }));
+    container.appendChild(BL.renderPage(BL.cur, { editable: true }));
     BL.fitEditor();
-    
-    // Render handles for selected layer
-    if (BL.renderHandles) BL.renderHandles();
   }
 
   function renderSpreadView(stage, container) {
     stage.classList.add('spread-view');
-    container.style.display = 'none';
-    
-    // Remove existing spread pages
-    var existing = stage.querySelectorAll('.spread-page');
-    for (var i = 0; i < existing.length; i++) {
-      existing[i].remove();
-    }
-    
-    // Compute spread pages dynamically: page 1 alone, pairs 2-3, 4-5, ..., page N alone
-    var N = BL.S.pages.length;
-    var spreads = [[0]];
-    for (var si = 1; si < N - 1; si += 2) {
-      spreads.push([si, si + 1]);
-    }
-    spreads.push([N - 1]);
-    var currentSpread = null;
-    for (var s = 0; s < spreads.length; s++) {
-      if (spreads[s].indexOf(BL.cur) !== -1) {
-        currentSpread = spreads[s];
-        break;
-      }
-    }
-    
-    if (!currentSpread) currentSpread = [BL.cur];
     
     var dims = BL.pageDims();
-    var scale = Math.min(
-      (stage.clientWidth - 40) / (dims[0] * currentSpread.length + 4),
-      (stage.clientHeight - 40) / dims[1]
-    ) || 1;
+    var pw = dims[0], ph = dims[1];
+    var pageCount = BL.S.pages.length;
     
-    for (var p = 0; p < currentSpread.length; p++) {
-      var pageIdx = currentSpread[p];
-      var div = document.createElement('div');
-      div.className = 'spread-page' + (pageIdx === BL.cur ? ' current' : '');
-      div.style.width = (dims[0] * scale) + 'px';
-      div.style.height = (dims[1] * scale) + 'px';
-      div.style.setProperty('--mm', scale + 'px');
-      div.appendChild(BL.renderPage(pageIdx, { nums: BL.S.nums }));
+    var existing = stage.querySelectorAll('.spread-page');
+    existing.forEach(function(el) { el.remove(); });
+    
+    var spreads = getSpreadPages(BL.cur, pageCount);
+    
+    spreads.forEach(function(pageIdx, i) {
+      var page = document.createElement('div');
+      page.className = 'spread-page' + (pageIdx === BL.cur ? ' current' : '');
+      page.style.setProperty('--mm', '1.8px');
+      page.appendChild(BL.renderPage(pageIdx, {}));
+      page.addEventListener('click', function() {
+        BL.cur = pageIdx;
+        BL.sel = null;
+        renderAll();
+      });
       
-      div.addEventListener('click', (function(idx) {
-        return function() {
-          BL.cur = idx;
-          BL.sel = null;
-          viewMode = 'page';
-          renderAll();
-        };
-      })(pageIdx));
-      
-      stage.appendChild(div);
+      if (i === 0) {
+        stage.insertBefore(page, container);
+      } else {
+        stage.appendChild(page);
+      }
+    });
+    
+    container.innerHTML = '';
+    container.appendChild(BL.renderPage(BL.cur, { editable: true }));
+    BL.fitEditor();
+  }
+
+  function getSpreadPages(curPage, total) {
+    // For spreads, show left and right pages
+    if (curPage === 0) {
+      // Front cover is alone on right
+      return [0];
+    }
+    if (curPage === total - 1) {
+      // Back cover is alone on left
+      return [total - 1];
+    }
+    // Interior spreads
+    if (curPage % 2 === 1) {
+      // Odd page is on right, even page is on left
+      return [curPage - 1, curPage];
+    } else {
+      // Even page is on left, odd page is on right
+      return [curPage, curPage + 1];
     }
   }
 
   BL.renderEditor = renderEditor;
 
-  // ============ Tools panel rendering ============
+  // ============ Render layout templates ============
   function renderTools() {
-    // Editing label
-    var editingLabel = document.getElementById('editingLabel');
-    if (editingLabel) {
-      editingLabel.textContent = 'EDITING / ' + String(BL.cur + 1).padStart(2, '0') + ' OF ' + String(BL.S.pages.length).padStart(2, '0');
-    }
-    
-    // Page title
-    var toolHead = document.getElementById('toolHead');
-    if (toolHead) {
-      toolHead.textContent = getPageTitle(BL.cur);
-    }
-    
-    // Page caption
-    var pageCap = document.getElementById('pageCap');
-    if (pageCap) {
-      var labels = getPageLabel(BL.cur);
-      pageCap.textContent = String(BL.cur + 1).padStart(2, '0') + ' ' + labels.join(' ').toLowerCase().replace(/\b\w/g, function(l) { return l.toUpperCase(); });
-    }
-    
-    // Sheet page name
-    var sheetPageName = document.getElementById('sheetPageName');
-    if (sheetPageName) {
-      sheetPageName.textContent = getPageTitle(BL.cur).replace('.', '');
-    }
-    
-    // Pager
-    var pager = document.getElementById('pager');
-    if (pager) {
-      pager.textContent = '‹ ' + String(BL.cur + 1).padStart(2, '0') + ' / ' + String(BL.S.pages.length).padStart(2, '0') + ' ›';
-    }
-    
-    // Page range label
-    var pageRangeLabel = document.getElementById('pageRangeLabel');
-    if (pageRangeLabel) {
-      pageRangeLabel.textContent = '01—' + String(BL.S.pages.length).padStart(2, '0');
-    }
-    
-    // Layout templates
     var layouts = document.getElementById('layouts');
-    if (layouts) {
-      layouts.innerHTML = '';
-      for (var i = 0; i < BL.TEMPLATE_ORDER.length; i++) {
-        var id = BL.TEMPLATE_ORDER[i];
-        var tpl = BL.TEMPLATES[id];
-        var btn = document.createElement('button');
-        btn.className = 'lay';
-        btn.dataset.id = id;
-        btn.title = tpl.name;
-        btn.setAttribute('aria-label', tpl.name);
-        btn.innerHTML = BL.templateIcon(id);
-        layouts.appendChild(btn);
+    if (!layouts) return;
+    
+    layouts.innerHTML = '';
+    
+    for (var i = 0; i < BL.TEMPLATE_ORDER.length; i++) {
+      var tplId = BL.TEMPLATE_ORDER[i];
+      var tpl = BL.TEMPLATES[tplId];
+      if (!tpl) continue;
+      
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'lay';
+      btn.dataset.id = tplId;
+      btn.title = tpl.name;
+      
+      var ico = document.createElement('div');
+      ico.className = 'ico';
+      var inner = document.createElement('div');
+      inner.className = 'in' + (tpl.bleed ? ' b' : '');
+      
+      // Create slot visualizations
+      if (tpl.slots) {
+        tpl.slots.forEach(function(slot) {
+          var el = document.createElement('i');
+          var r = slot.rect;
+          el.style.left = (r[0] * 100) + '%';
+          el.style.top = (r[1] * 100) + '%';
+          el.style.width = (r[2] * 100) + '%';
+          el.style.height = (r[3] * 100) + '%';
+          if (slot.kind === 'text') el.className = 'text';
+          inner.appendChild(el);
+        });
       }
+      
+      ico.appendChild(inner);
+      btn.appendChild(ico);
+      layouts.appendChild(btn);
     }
-    
-    // Background swatches
-    renderSwatches();
-    
-    // View mode toggle
-    updateViewToggle();
-    
-    // Inspector labels
-    updateInspectorLabels();
-    
-    // Print plan
-    renderPrintPlan();
   }
 
-  // New color palette
-  var BGS = ['#FFFFFF', '#F3EADC', '#F8D97A', '#C7E67D', '#F6AA83', '#A8D9F9', '#1F3A2C', '#17261F'];
-
+  // ============ Render background swatches (5 presets + custom) ============
   function renderSwatches() {
-    var swatches = document.getElementById('swatches');
-    if (!swatches) return;
+    var container = document.getElementById('swatches');
+    if (!container) return;
     
-    var page = BL.S.pages[BL.cur];
-    var html = '';
+    // 5 preset colours: white, cream, yellow, blue, near-black
+    var presets = ['#ffffff', '#f5f0e6', '#fef3c0', '#d0e4f0', '#2a2a2a'];
     
-    for (var i = 0; i < BGS.length; i++) {
-      var c = BGS[i];
-      html += '<button data-c="' + c + '" style="background:' + c + '" aria-label="Background ' + c + '" aria-pressed="' + (page.bg === c) + '"></button>';
+    container.innerHTML = '';
+    var currentBg = BL.S.pages[BL.cur].bg || '#ffffff';
+    
+    presets.forEach(function(color) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.backgroundColor = color;
+      btn.dataset.c = color;
+      btn.setAttribute('aria-pressed', color === currentBg);
+      container.appendChild(btn);
+    });
+    
+    // Custom picker button
+    var customBtn = document.createElement('button');
+    customBtn.type = 'button';
+    customBtn.dataset.c = 'custom';
+    var isCustom = presets.indexOf(currentBg) === -1;
+    customBtn.setAttribute('aria-pressed', isCustom);
+    if (isCustom) {
+      customBtn.style.backgroundColor = currentBg;
     }
-    
-    // Custom color input
-    html += '<button data-c="custom" style="background:linear-gradient(135deg, #fff 50%, ' + page.bg + ' 50%)" aria-label="Custom color"></button>';
-    html += '<input type="color" id="customBg" value="' + page.bg + '" style="display:none">';
-    
-    swatches.innerHTML = html;
+    container.appendChild(customBtn);
   }
 
+  BL.renderSwatches = renderSwatches;
+
+  // ============ Render print plan ============
+  function renderPrintPlan() {
+    var sheetCount = BL.S.pages.length / 8;
+    
+    // Update print plan label
+    var planLabel = document.getElementById('printPlanLabel');
+    if (planLabel) {
+      planLabel.textContent = String(sheetCount).padStart(2, '0') + ' / A3 PRINT PLAN';
+    }
+    
+    // Update print plan title
+    var planTitle = document.getElementById('printPlanTitle');
+    if (planTitle) {
+      var sheetWord = sheetCount === 1 ? 'sheet' : 'sheets';
+      var pageWord = BL.S.pages.length + ' A5 pages';
+      planTitle.innerHTML = sheetCount + ' ' + sheetWord + '.<br><span class="accent">' + pageWord + '.</span>';
+    }
+    
+    // Render imposition diagram
+    var diagram = document.getElementById('impositionDiagram');
+    if (diagram && BL.renderImpositionDiagram) {
+      BL.renderImpositionDiagram(diagram, activeSheet);
+    }
+  }
+
+  BL.renderPrintPlan = renderPrintPlan;
+
+  // ============ Update page caption ============
+  function updatePageCap() {
+    var cap = document.getElementById('pageCap');
+    if (!cap) return;
+    
+    var dims = BL.pageDims();
+    var pw = dims[0], ph = dims[1];
+    var pageNum = BL.cur + 1;
+    var total = BL.S.pages.length;
+    
+    // Format: 'Page x of y · A5 · 148 × 210 mm' (landscape: 210 × 148 mm)
+    cap.textContent = 'Page ' + pageNum + ' of ' + total + ' · A5 · ' + pw + ' × ' + ph + ' mm';
+  }
+
+  // ============ Update view toggle ============
   function updateViewToggle() {
     var segView = document.getElementById('segView');
     if (!segView) return;
@@ -282,69 +383,6 @@
       btns[i].setAttribute('aria-pressed', isActive);
     }
   }
-
-  function updateInspectorLabels() {
-    var inspectorLabel = document.getElementById('inspectorLabel');
-    var inspectorTitle = document.getElementById('inspectorTitle');
-    
-    if (BL.sel && BL.S.pages[BL.cur]) {
-      var layer = BL.findLayer(BL.sel);
-      if (layer && inspectorLabel && inspectorTitle) {
-        inspectorLabel.textContent = 'SELECTED LAYER';
-        if (layer.kind === 'photo') {
-          inspectorTitle.textContent = layer.src ? 'Photo' : 'Add a photo';
-        } else if (layer.kind === 'text') {
-          inspectorTitle.textContent = 'Text';
-        } else if (layer.kind === 'shape') {
-          inspectorTitle.textContent = 'Shape';
-        }
-      }
-    } else {
-      if (inspectorLabel) inspectorLabel.textContent = 'SELECTED PAGE';
-      if (inspectorTitle) inspectorTitle.textContent = 'Select a layer';
-    }
-  }
-
-  function renderPrintPlan() {
-    var sheetCount = BL.S.pages.length / 8;
-    var pageCount = BL.S.pages.length;
-    
-    // Print plan label
-    var printPlanLabel = document.getElementById('printPlanLabel');
-    if (printPlanLabel) {
-      printPlanLabel.textContent = '0' + sheetCount + ' / ' + BL.S.sheet + ' PRINT PLAN';
-    }
-    
-    // Print plan title
-    var printPlanTitle = document.getElementById('printPlanTitle');
-    if (printPlanTitle) {
-      var sheetWord = sheetCount === 1 ? 'One sheet' : sheetCount + ' sheets';
-      var pageWord = pageCount === 8 ? 'Eight' : pageCount === 16 ? 'Sixteen' : 'Twenty-four';
-      printPlanTitle.innerHTML = sheetWord + '.<br><span class="accent">' + pageWord + ' A5 pages.</span>';
-    }
-    
-    // Imposition diagram - show all sheets
-    var diagram = document.getElementById('impositionDiagram');
-    if (diagram) {
-      var html = '';
-      for (var k = 1; k <= sheetCount; k++) {
-        var imp = BL.computeImposition(k, pageCount);
-        if (sheetCount > 1) {
-          html += '<div class="sheet-label">Sheet ' + k + '</div>';
-        }
-        for (var r = 0; r < imp.side1.length; r++) {
-          for (var c = 0; c < imp.side1[r].length; c++) {
-            var pageNum = imp.side1[r][c];
-            var isRot = r === imp.rotatedRow;
-            html += '<div class="cell' + (isRot ? ' rot' : '') + '">' + pageNum + '</div>';
-          }
-        }
-      }
-      diagram.innerHTML = html;
-    }
-  }
-
-  BL.renderTools = renderTools;
 
   // ============ Top bar controls ============
   function updateTopBar() {
@@ -410,6 +448,15 @@
       tNums.setAttribute('aria-pressed', BL.S.nums);
       tNums.classList.toggle('active', BL.S.nums);
     }
+    
+    // Update page heading
+    var toolHead = document.getElementById('toolHead');
+    if (toolHead) {
+      toolHead.textContent = getPageTitle(BL.cur);
+    }
+    
+    // Update page caption
+    updatePageCap();
   }
 
   BL.updateTopBar = updateTopBar;
@@ -417,17 +464,189 @@
   // ============ Render all ============
   function renderAll() {
     updateTopBar();
+    renderSheetTabs();
     renderStrip();
     renderTools();
+    renderSwatches();
     renderPrintPlan();
     renderEditor();
     BL.renderInspector();
     if (BL.renderSheets) BL.renderSheets();
     if (BL.updateSteps) BL.updateSteps();
     if (BL.renderSafetyPanel) BL.renderSafetyPanel();
+    updateViewToggle();
   }
 
   BL.renderAll = renderAll;
+
+  // ============ Dropdown menu handling ============
+  var openDropdown = null;
+  
+  function closeAllDropdowns() {
+    document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
+      menu.hidden = true;
+    });
+    document.querySelectorAll('.dropdown-trigger, .btn-split-caret').forEach(function(btn) {
+      btn.setAttribute('aria-expanded', 'false');
+    });
+    openDropdown = null;
+  }
+  
+  function openDropdownMenu(dropdown, trigger) {
+    closeAllDropdowns();
+    var menu = dropdown.querySelector('.dropdown-menu');
+    if (menu) {
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      openDropdown = dropdown;
+      // Focus first item
+      var firstItem = menu.querySelector('.dropdown-item');
+      if (firstItem) firstItem.focus();
+    }
+  }
+  
+  function setupDropdowns() {
+    // Options dropdown
+    var optionsDropdown = document.getElementById('optionsDropdown');
+    var bOptions = document.getElementById('bOptions');
+    if (optionsDropdown && bOptions) {
+      bOptions.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (openDropdown === optionsDropdown) {
+          closeAllDropdowns();
+        } else {
+          openDropdownMenu(optionsDropdown, bOptions);
+        }
+      });
+      
+      optionsDropdown.addEventListener('click', function(e) {
+        var item = e.target.closest('.dropdown-item');
+        if (!item) return;
+        
+        var action = item.dataset.action;
+        closeAllDropdowns();
+        
+        if (action === 'open') {
+          var fileJson = document.getElementById('fileJson');
+          if (fileJson) {
+            fileJson.value = '';
+            fileJson.click();
+          }
+        } else if (action === 'save-json') {
+          BL.saveProject();
+        } else if (action === 'new') {
+          BL.newBooklet();
+        }
+      });
+    }
+    
+    // Save dropdown
+    var saveDropdown = document.getElementById('saveDropdown');
+    var bSaveCaret = document.getElementById('bSaveCaret');
+    var saveMenu = document.getElementById('saveMenu');
+    
+    if (saveDropdown && bSaveCaret) {
+      bSaveCaret.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (openDropdown === saveDropdown) {
+          closeAllDropdowns();
+        } else {
+          // Populate save menu
+          populateSaveMenu();
+          openDropdownMenu(saveDropdown, bSaveCaret);
+        }
+      });
+    }
+    
+    // Preview button (opens sheets overlay)
+    var bPreview = document.getElementById('bPreview');
+    if (bPreview) {
+      bPreview.addEventListener('click', function() {
+        var overlay = document.getElementById('sheetsOverlay');
+        if (overlay) {
+          overlay.hidden = false;
+          if (BL.renderSheets) BL.renderSheets();
+        }
+      });
+    }
+    
+    // Close sheets overlay
+    var bCloseSheets = document.getElementById('bCloseSheets');
+    if (bCloseSheets) {
+      bCloseSheets.addEventListener('click', function() {
+        var overlay = document.getElementById('sheetsOverlay');
+        if (overlay) overlay.hidden = true;
+      });
+    }
+    
+    // Close dropdowns on click outside or Escape
+    document.addEventListener('click', function(e) {
+      if (openDropdown && !openDropdown.contains(e.target)) {
+        closeAllDropdowns();
+      }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        if (openDropdown) {
+          closeAllDropdowns();
+          e.preventDefault();
+        } else {
+          var overlay = document.getElementById('sheetsOverlay');
+          if (overlay && !overlay.hidden) {
+            overlay.hidden = true;
+          }
+        }
+      }
+    });
+  }
+  
+  // ============ Populate Save dropdown menu ============
+  function populateSaveMenu() {
+    var menu = document.getElementById('saveMenu');
+    if (!menu) return;
+    
+    menu.innerHTML = '';
+    
+    // Save as PDF
+    var pdfItem = document.createElement('button');
+    pdfItem.className = 'dropdown-item';
+    pdfItem.textContent = 'Save as PDF';
+    pdfItem.addEventListener('click', function() {
+      closeAllDropdowns();
+      if (BL.doPrint) BL.doPrint();
+    });
+    menu.appendChild(pdfItem);
+    
+    // PNG exports - one per sheet side
+    var sheetCount = BL.S.pages.length / 8;
+    for (var k = 1; k <= sheetCount; k++) {
+      for (var side = 1; side <= 2; side++) {
+        var pngItem = document.createElement('button');
+        pngItem.className = 'dropdown-item';
+        pngItem.textContent = 'Save PNG — Sheet ' + k + ' ' + (side === 1 ? 'front' : 'back');
+        pngItem.dataset.sheet = k;
+        pngItem.dataset.side = side;
+        pngItem.addEventListener('click', function(e) {
+          var sheetIdx = parseInt(e.target.dataset.sheet, 10);
+          var sideNum = parseInt(e.target.dataset.side, 10);
+          closeAllDropdowns();
+          if (BL.exportSheet) BL.exportSheet(sheetIdx, sideNum);
+        });
+        menu.appendChild(pngItem);
+      }
+    }
+    
+    // Save project file
+    var jsonItem = document.createElement('button');
+    jsonItem.className = 'dropdown-item';
+    jsonItem.textContent = 'Save project file (.json)';
+    jsonItem.addEventListener('click', function() {
+      closeAllDropdowns();
+      BL.saveProject();
+    });
+    menu.appendChild(jsonItem);
+  }
 
   // ============ Event handlers ============
   function setupTopBar() {
@@ -501,9 +720,8 @@
         if (newCount === oldCount) return;
         
         if (newCount < oldCount) {
-          // Shrinking: confirm before deleting pages
-          var toDelete = oldCount - newCount;
-          if (!confirm('Changing to ' + newCount + ' pages will delete pages ' + (newCount + 1) + '–' + oldCount + '. Continue?')) {
+          var diff = oldCount - newCount;
+          if (!confirm('Changing to ' + newCount + ' pages will delete pages ' + (newCount + 1) + '-' + oldCount + '. Continue?')) {
             return;
           }
         }
@@ -511,18 +729,19 @@
         BL.pushUndo();
         
         if (newCount > oldCount) {
-          // Growing: add pages
+          // Add pages
           for (var i = oldCount; i < newCount; i++) {
             BL.S.pages.push(BL.newPage());
           }
         } else {
-          // Shrinking: remove pages
+          // Remove pages
           BL.S.pages.length = newCount;
-          if (BL.cur >= newCount) BL.cur = newCount - 1;
-          BL.sel = null;
+          if (BL.cur >= newCount) {
+            BL.cur = newCount - 1;
+          }
         }
         
-        BL.S.pageCount = newCount;
+        activeSheet = getSheetForPage(BL.cur);
         renderAll();
         BL.save();
       });
@@ -552,36 +771,16 @@
       });
     }
     
-    // Sheets overlay button
-    var bSheets = document.getElementById('bSheets');
-    if (bSheets) {
-      bSheets.addEventListener('click', function() {
-        var overlay = document.getElementById('sheetsOverlay');
-        if (overlay) {
-          overlay.hidden = false;
-          if (BL.renderSheets) BL.renderSheets();
-        }
+    // Print button (Save as PDF)
+    var bPrint = document.getElementById('bPrint');
+    if (bPrint) {
+      bPrint.addEventListener('click', function() {
+        if (BL.doPrint) BL.doPrint();
       });
     }
     
-    // Close sheets overlay
-    var bCloseSheets = document.getElementById('bCloseSheets');
-    if (bCloseSheets) {
-      bCloseSheets.addEventListener('click', function() {
-        var overlay = document.getElementById('sheetsOverlay');
-        if (overlay) overlay.hidden = true;
-      });
-    }
-    
-    // Escape to close overlay
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        var overlay = document.getElementById('sheetsOverlay');
-        if (overlay && !overlay.hidden) {
-          overlay.hidden = true;
-        }
-      }
-    });
+    // Setup dropdowns
+    setupDropdowns();
   }
 
   function setupTools() {
@@ -626,7 +825,10 @@
         
         if (btn.dataset.c === 'custom') {
           var customBg = document.getElementById('customBg');
-          if (customBg) customBg.click();
+          if (customBg) {
+            customBg.value = BL.S.pages[BL.cur].bg || '#ffffff';
+            customBg.click();
+          }
           return;
         }
         
@@ -637,10 +839,12 @@
         renderStrip();
         BL.save();
       });
-      
-      swatches.addEventListener('input', function(e) {
-        if (e.target.id !== 'customBg') return;
-        
+    }
+    
+    // Custom colour picker
+    var customBg = document.getElementById('customBg');
+    if (customBg) {
+      customBg.addEventListener('input', function(e) {
         BL.pushUndo();
         BL.S.pages[BL.cur].bg = e.target.value;
         renderSwatches();
@@ -661,20 +865,10 @@
       bAddText.addEventListener('click', BL.addTextLayer);
     }
     
-    var bAddShape = document.getElementById('bAddShape');
-    if (bAddShape) {
-      bAddShape.addEventListener('click', BL.addShapeLayer);
-    }
-    
     // Add layer buttons (center toolbar)
     var bAddPhotoAlt = document.getElementById('bAddPhotoAlt');
     if (bAddPhotoAlt) {
       bAddPhotoAlt.addEventListener('click', BL.addPhotoLayer);
-    }
-    
-    var bAddTextAlt = document.getElementById('bAddTextAlt');
-    if (bAddTextAlt) {
-      bAddTextAlt.addEventListener('click', BL.addTextLayer);
     }
     
     // Clear page button
@@ -706,11 +900,26 @@
     if (zoomIn) {
       zoomIn.addEventListener('click', BL.zoomIn);
     }
+    
+    // Snap toggle
+    var snapToggle = document.getElementById('snapToggle');
+    if (snapToggle) {
+      snapToggle.addEventListener('click', function() {
+        var pressed = snapToggle.getAttribute('aria-pressed') === 'true';
+        snapToggle.setAttribute('aria-pressed', !pressed);
+        snapToggle.classList.toggle('active', !pressed);
+        if (BL.setSnapping) BL.setSnapping(!pressed);
+      });
+    }
+    
+    // Setup filmstrip scroll
+    setupFilmstripScroll();
   }
 
   // ============ Test API ============
   // Exposed on window.BL for automated testing
-  // Already exposed: BL.S, BL.cur, BL.sel, BL.applyTemplate, BL.exportState, BL.importState, etc.
+  BL.getActiveSheet = function() { return activeSheet; };
+  BL.setActiveSheet = function(s) { activeSheet = s; renderAll(); };
 
   // ============ Boot ============
   function boot() {
@@ -729,6 +938,8 @@
           pages: saved.pages
         };
       }
+      
+      activeSheet = getSheetForPage(BL.cur);
       
       setupTopBar();
       setupTools();

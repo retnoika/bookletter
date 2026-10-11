@@ -168,6 +168,103 @@ input {
   gap: 8px;
 }
 
+/* ============ Preview Button ============ */
+.btn-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  min-height: 36px;
+}
+
+.btn-preview:hover {
+  color: var(--ink);
+}
+
+.preview-icon {
+  font-size: 16px;
+}
+
+/* ============ Dropdown Menus ============ */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dropdown-caret {
+  font-size: 8px;
+  opacity: 0.7;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 180px;
+  background: var(--surface);
+  border: var(--border-w) solid var(--line-strong);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  z-index: 100;
+}
+
+.dropdown-menu-right {
+  left: auto;
+  right: 0;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 12px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background: var(--desk);
+}
+
+.dropdown-item:focus-visible {
+  outline: 2px solid var(--focus) inset;
+}
+
+/* ============ Split Button (Save) ============ */
+.btn-split {
+  display: inline-flex;
+}
+
+.btn-split-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 1px solid rgba(0,0,0,0.15);
+}
+
+.btn-split-caret {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 0 8px;
+  min-width: 28px;
+}
+
+.btn-split-caret .dropdown-caret {
+  font-size: 10px;
+}
+
 /* ============ Main Three-Rail Layout ============ */
 .main {
   display: grid;
@@ -298,6 +395,32 @@ input {
   width: 100%;
 }
 
+/* ============ Project Name Input ============ */
+.project-name-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: var(--border-w) solid var(--line-strong);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.project-name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ============ Button with Icon ============ */
+.btn-icon {
+  gap: 6px;
+}
+
+.btn-icon-glyph {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
 /* ============ Chips ============ */
 .chip {
   font-size: 9px;
@@ -354,6 +477,70 @@ input {
   margin-right: auto;
 }
 
+.seg-vertical {
+  flex-direction: column;
+}
+
+.seg-vertical button {
+  border-right: none;
+  border-bottom: var(--border-w) solid var(--line-strong);
+}
+
+.seg-vertical button:last-child {
+  border-bottom: none;
+}
+
+/* ============ Sheet Controls ============ */
+.sheet-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sheet-controls .seg {
+  flex-shrink: 0;
+}
+
+/* ============ Paper Swatches ============ */
+.paper-swatches {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.paper-swatches button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: var(--border-w) solid var(--line);
+  padding: 0;
+  min-height: 32px;
+  flex-shrink: 0;
+}
+
+.paper-swatches button[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.paper-swatches button[data-c="custom"] {
+  position: relative;
+  overflow: hidden;
+  background: conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red);
+}
+
+.paper-swatches button[data-c="custom"]::after {
+  content: '+';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
 /* ============ Swatches ============ */
 .sw {
   display: flex;
@@ -390,15 +577,24 @@ input {
   color: var(--ink-muted);
 }
 
-/* ============ Layouts Grid ============ */
+/* ============ Layouts Horizontal Scroll ============ */
+.layouts-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+
 .layouts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
   gap: 6px;
+  padding-bottom: 4px;
 }
 
 .layouts .lay {
-  aspect-ratio: 148 / 210;
+  flex-shrink: 0;
+  width: 56px;
+  height: 80px;
   border: var(--border-w) solid var(--line);
   background: var(--surface);
   padding: 4px;
@@ -465,6 +661,10 @@ input {
   flex-shrink: 0;
 }
 
+.page-heading {
+  margin-bottom: 0;
+}
+
 .center-toolbar {
   display: flex;
   align-items: center;
@@ -474,14 +674,18 @@ input {
   flex-wrap: wrap;
 }
 
-.toolbar-actions {
+.toolbar-left {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.toolbar-spacer {
-  flex: 1;
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-wrap: wrap;
 }
 
 /* ============ Canvas Area ============ */
@@ -532,33 +736,40 @@ input {
   flex-shrink: 0;
 }
 
-/* ============ Sheet Row ============ */
-.sheet-row {
+/* ============ Sheet Tabs ============ */
+.sheet-tabs-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 0;
+  padding: 16px 0 8px 0;
   border-top: var(--border-w) solid var(--line);
   margin-top: 16px;
   flex-shrink: 0;
 }
 
-.sheet-page-name {
-  font-size: 12px;
+.sheet-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.sheet-tab {
+  padding: 8px 14px;
+  font-size: 11px;
   font-weight: 500;
-  color: var(--ink);
+  border: var(--border-w) solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-muted);
+  min-height: 36px;
 }
 
-.pager {
-  font-size: 11px;
-  color: var(--ink-muted);
-  font-family: var(--f-sans);
+.sheet-tab:hover {
+  border-color: var(--accent);
 }
 
-.sheet-hint {
-  font-size: 11px;
-  color: var(--ink-muted);
-  margin-left: auto;
+.sheet-tab.active {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-color: var(--accent);
 }
 
 /* ============ Filmstrip ============ */
@@ -568,6 +779,35 @@ input {
   align-items: center;
   padding-bottom: 8px;
   flex-shrink: 0;
+}
+
+.filmstrip-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filmstrip-arrow {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  border: var(--border-w) solid var(--line);
+  background: var(--surface);
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filmstrip-arrow:hover:not([hidden]) {
+  background: var(--desk);
+  color: var(--ink);
+}
+
+.filmstrip-arrow[hidden] {
+  visibility: hidden;
 }
 
 .strip {

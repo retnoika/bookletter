@@ -316,23 +316,7 @@
       html += '<div class="insp-row"><span>Color</span><input type="color" data-prop="color" value="' + layer.color + '"></div>';
       html += '<div class="insp-row"><span>Line height</span><input type="number" data-prop="line" value="' + layer.line.toFixed(2) + '" step="0.1" min="0.8" max="3"></div>';
       html += '</div>';
-    } else if (layer.kind === 'shape') {
-      html += '<div class="insp-section">';
-      html += '<div class="insp-row"><span>Shape</span>';
-      html += '<div class="shape-picker">';
-      for (var i = 0; i < BL.SHAPE_NAMES.length; i++) {
-        var name = BL.SHAPE_NAMES[i];
-        html += '<button class="shape-btn" data-act="shape" data-v="' + name + '" aria-pressed="' + (layer.shape === name) + '" title="' + name + '">';
-        html += '<svg viewBox="0 0 100 100">' + BL.SHAPES[name] + '</svg>';
-        html += '</button>';
-      }
-      html += '</div></div>';
-      html += '<div class="insp-row"><span>Fill</span><input type="color" data-prop="color" value="' + layer.color + '"></div>';
-      html += '<div class="insp-row"><span>Stroke color</span><input type="color" data-prop="stroke" value="' + (layer.stroke || '#000000') + '"></div>';
-      html += '<div class="insp-row"><span>Stroke width (mm)</span><input type="number" data-prop="strokeWidth" value="' + layer.strokeWidth.toFixed(2) + '" step="0.1" min="0.25" max="10"></div>';
-      html += '</div>';
     }
-    
     // Duplicate and delete
     html += '<div class="insp-section">';
     html += '<div class="acts">';
@@ -371,8 +355,6 @@
       layer.align = val;
     } else if (act === 'bold') {
       layer.bold = val === 'true';
-    } else if (act === 'shape') {
-      layer.shape = val;
     } else if (act === 'panmode') {
       if (BL.setPhotoPanMode) BL.setPhotoPanMode(val === 'true');
       BL.renderInspector();
@@ -551,23 +533,8 @@
     BL.save();
   }
 
-  function addShapeLayer() {
-    BL.pushUndo();
-    var dims = BL.pageDims();
-    var cx = dims[0] / 2;
-    var cy = dims[1] / 2;
-    var layer = BL.newShapeLayer(cx - 20, cy - 20, 40, 40);
-    BL.S.pages[BL.cur].layers.push(layer);
-    BL.sel = layer.id;
-    BL.renderEditor();
-    BL.renderInspector();
-    BL.renderStrip();
-    BL.save();
-  }
-
   BL.addPhotoLayer = addPhotoLayer;
   BL.addTextLayer = addTextLayer;
-  BL.addShapeLayer = addShapeLayer;
 
   // ============ Inline text editing ============
   function handleTextDblClick(e) {
@@ -738,7 +705,7 @@
     
     var cap = document.getElementById('pageCap');
     if (cap) {
-      cap.textContent = 'Page ' + (BL.cur + 1) + ' of ' + BL.S.pages.length + ' · A5 ' + pw + ' × ' + ph + ' mm';
+      cap.textContent = 'Page ' + (BL.cur + 1) + ' of ' + BL.S.pages.length + ' · A5 · ' + pw + ' × ' + ph + ' mm';
     }
     
     return mm;

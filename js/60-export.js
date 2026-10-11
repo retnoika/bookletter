@@ -189,9 +189,8 @@
       drawPhotoLayer(ctx, layer, x, y, w, h, imageCache);
     } else if (layer.kind === 'text') {
       drawTextLayer(ctx, layer, x, y, w, h, pxPerMm);
-    } else if (layer.kind === 'shape') {
-      drawShapeLayer(ctx, layer, x, y, w, h, pxPerMm);
     }
+    // Unknown layer kinds (e.g., shape) are silently skipped
 
     ctx.restore();
   }
@@ -284,50 +283,6 @@
     }
   }
 
-  // ============ Draw shape layer ============
-  function drawShapeLayer(ctx, layer, x, y, w, h, pxPerMm) {
-    var shapePath = BL.SHAPES[layer.shape];
-    if (!shapePath) return;
-
-    // Parse SVG path and scale to layer size
-    var pathMatch = shapePath.match(/d="([^"]+)"/);
-    var circleMatch = shapePath.match(/<circle[^>]+>/);
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(w / 100, h / 100);
-
-    var path = new Path2D();
-
-    if (pathMatch) {
-      path = new Path2D(pathMatch[1]);
-    } else if (circleMatch) {
-      // Handle circle shape
-      var cxMatch = circleMatch[0].match(/cx="(\d+)"/);
-      var cyMatch = circleMatch[0].match(/cy="(\d+)"/);
-      var rMatch = circleMatch[0].match(/r="(\d+)"/);
-      if (cxMatch && cyMatch && rMatch) {
-        var cx = parseFloat(cxMatch[1]);
-        var cy = parseFloat(cyMatch[1]);
-        var r = parseFloat(rMatch[1]);
-        path.arc(cx, cy, r, 0, Math.PI * 2);
-      }
-    }
-
-    ctx.fillStyle = layer.color || '#17261f';
-    ctx.fill(path);
-
-    if (layer.stroke && layer.strokeWidth >= 0.25) {
-      ctx.strokeStyle = layer.stroke;
-      // Stroke width in viewBox units (100x100 scaled to w x h)
-      var avgMm = (layer.w + layer.h) / 2;
-      var strokeVb = (layer.strokeWidth / avgMm) * 100;
-      ctx.lineWidth = strokeVb;
-      ctx.stroke(path);
-    }
-
-    ctx.restore();
-  }
 
   // ============ Draw crop/fold marks ============
   function drawMarks(ctx, ox, oy, pw, ph, pxPerMm) {
@@ -462,15 +417,6 @@
             });
           }
         }
-
-        // Check thin stroke
-        if (layer.kind === 'shape' && layer.stroke && layer.strokeWidth > 0 && layer.strokeWidth < 0.25) {
-          findings.push({
-            type: 'stroke',
-            page: p + 1,
-            strokeWidth: layer.strokeWidth
-          });
-        }
       }
     }
 
@@ -593,8 +539,6 @@
         html += '<li class="check-warn">Page ' + f.page + ' ' + f.kind + ' crosses safe margin: ' + crossDesc + '</li>';
       } else if (f.type === 'resolution') {
         html += '<li class="check-warn">Page ' + f.page + ' photo at ' + f.dpi + ' dpi (placed ' + f.width.toFixed(0) + '×' + f.height.toFixed(0) + 'mm)</li>';
-      } else if (f.type === 'stroke') {
-        html += '<li class="check-warn">Page ' + f.page + ' shape stroke ' + f.strokeWidth.toFixed(2) + 'mm (min 0.25mm)</li>';
       }
     });
     html += '</ul>';

@@ -16,21 +16,43 @@
     <header class="header">
       <div class="header-brand">
         <div class="brand-name">Bookletter</div>
-        <div class="brand-tagline">One sheet of A3. Eight A5 pages.</div>
-      </div>
-      
-      <div class="header-title">
-        <input type="text" id="titleInput" value="untitled booklet" aria-label="Booklet title">
+        <div class="brand-tagline">A5 booklets from A3 sheets.</div>
       </div>
       
       <span class="header-status" id="saved"></span>
       
       <div class="header-actions">
-        <button class="btn-s" id="bOpen">Open</button>
-        <button class="btn-s" id="bSave">Save</button>
-        <button class="btn-s" id="bNew">New booklet</button>
-        <button class="btn-s" id="bSheets">Sheets</button>
-        <button class="btn-primary" id="bPrint">Print / Save PDF</button>
+        <!-- Preview button -->
+        <button class="btn-preview" id="bPreview" aria-label="Preview sheets">
+          <span class="preview-icon">◫</span>
+          <span>Preview</span>
+        </button>
+        
+        <!-- Options dropdown -->
+        <div class="dropdown" id="optionsDropdown">
+          <button class="btn-s dropdown-trigger" id="bOptions" aria-haspopup="true" aria-expanded="false">
+            Options
+            <span class="dropdown-caret">▾</span>
+          </button>
+          <div class="dropdown-menu" role="menu" hidden>
+            <button class="dropdown-item" data-action="open" role="menuitem">Open project…</button>
+            <button class="dropdown-item" data-action="save-json" role="menuitem">Save project…</button>
+            <button class="dropdown-item" data-action="new" role="menuitem">New booklet</button>
+          </div>
+        </div>
+        
+        <!-- Save dropdown (split button) -->
+        <div class="dropdown dropdown-save" id="saveDropdown">
+          <div class="btn-split">
+            <button class="btn-primary btn-split-main" id="bPrint">Save as PDF</button>
+            <button class="btn-primary btn-split-caret" id="bSaveCaret" aria-haspopup="true" aria-expanded="false" aria-label="More save options">
+              <span class="dropdown-caret">▾</span>
+            </button>
+          </div>
+          <div class="dropdown-menu dropdown-menu-right" role="menu" id="saveMenu" hidden>
+            <!-- Populated dynamically based on sheet count -->
+          </div>
+        </div>
       </div>
     </header>
 
@@ -39,10 +61,17 @@
       <!-- Left rail -->
       <aside class="rail rail-left">
         <section class="rail-section">
-          <div class="micro-label">01 / THE WORKTABLE</div>
-          <h1 class="display-headline">Make your<br>booklet.</h1>
-          <p class="explainer">Design 8–24 A5 pages, print on A3 sheets, fold twice.</p>
-          <button class="btn-accent btn-full" id="bFill">Fill from images…</button>
+          <h3 class="section-title">Project Name</h3>
+          <input type="text" class="project-name-input" id="titleInput" value="untitled booklet" aria-label="Project name">
+        </section>
+
+        <section class="rail-section">
+          <h3 class="section-title">Booklet Size</h3>
+          <div class="seg seg-vertical" id="segPages">
+            <button data-v="8">8 pages · 1 sheet</button>
+            <button data-v="16">16 pages · 2 sheets</button>
+            <button data-v="24">24 pages · 3 sheets</button>
+          </div>
         </section>
 
         <section class="rail-section">
@@ -54,42 +83,40 @@
         </section>
 
         <section class="rail-section">
-          <h3 class="section-title">Booklet size</h3>
-          <div class="seg" id="segPages">
-            <button data-v="8">8 pages · 1 sheet</button>
-            <button data-v="16">16 pages · 2 sheets</button>
-            <button data-v="24">24 pages · 3 sheets</button>
+          <h3 class="section-title">Sheets</h3>
+          <div class="sheet-controls">
+            <div class="seg" id="segSheet">
+              <button data-v="A3">A3</button>
+              <button data-v="SRA3">SRA3</button>
+            </div>
+            <div class="seg" id="segBleed">
+              <button data-v="0">0mm</button>
+              <button data-v="3">3mm</button>
+            </div>
           </div>
         </section>
 
         <section class="rail-section">
-          <h3 class="section-title">Sheet</h3>
-          <div class="seg" id="segSheet">
-            <button data-v="A3">A3</button>
-            <button data-v="SRA3">SRA3</button>
-          </div>
-          <div class="seg" id="segBleed">
-            <button data-v="0">0mm</button>
-            <button data-v="3">3mm</button>
+          <h3 class="section-title">Paper colour</h3>
+          <div class="paper-swatches" id="swatches">
+            <!-- 5 swatches + custom picker, populated by JS -->
           </div>
         </section>
 
         <section class="rail-section">
-          <h3 class="section-title">Paper + colour</h3>
-          <div class="sw" id="swatches"></div>
+          <h3 class="section-title">Layouts</h3>
+          <div class="layouts-scroll">
+            <div class="layouts" id="layouts">
+              <!-- Populated by JS -->
+            </div>
+          </div>
         </section>
 
         <section class="rail-section">
-          <h3 class="section-title">Layout</h3>
-          <div class="layouts" id="layouts"></div>
-        </section>
-
-        <section class="rail-section">
-          <h3 class="section-title">Add layer</h3>
+          <h3 class="section-title">Add Layers</h3>
           <div class="add-btns">
-            <button class="btn-s" id="bAddPhoto">+ Add photo</button>
-            <button class="btn-s" id="bAddText">T Add text</button>
-            <button class="btn-s" id="bAddShape">◇ Add shape</button>
+            <button class="btn-s" id="bAddPhoto">Add Image</button>
+            <button class="btn-s" id="bAddText">Add Text</button>
           </div>
         </section>
 
@@ -104,49 +131,55 @@
       <!-- Centre rail -->
       <div class="rail rail-center">
         <div class="center-header">
-          <div class="micro-label" id="editingLabel">EDITING / 01 OF 08</div>
-          <h2 class="display-headline" id="toolHead">Front cover.</h2>
-          <p class="hint" id="toolSub" style="display:none">Front cover</p>
+          <h2 class="display-headline page-heading" id="toolHead">Front cover.</h2>
         </div>
 
         <div class="center-toolbar">
-          <div class="seg seg-view" id="segView">
-            <button data-v="page" class="active">Page</button>
-            <button data-v="spread">Spread</button>
+          <div class="toolbar-left">
+            <button class="btn-s btn-icon" id="bAddPhotoAlt" title="Add image">
+              <span class="btn-icon-glyph">◩</span> Add Image
+            </button>
+            <button class="btn-s btn-icon" id="bClear" title="Clear page">
+              <span class="btn-icon-glyph">⌧</span> Clear Page
+            </button>
           </div>
-          <div class="toolbar-actions">
-            <button class="btn-s" id="bAddPhotoAlt">+ Add photo</button>
-            <button class="btn-s" id="bAddTextAlt">T Add type</button>
-            <button class="btn-s" id="bClear">Clear page</button>
+          <div class="toolbar-right">
+            <div class="seg seg-view" id="segView">
+              <button data-v="page" class="active">Page</button>
+              <button data-v="spread">Spread</button>
+            </div>
+            <div class="zoom-ctrl">
+              <button id="zoomOut" aria-label="Zoom out">−</button>
+              <button id="zoomFit">Fit</button>
+              <button id="zoomIn" aria-label="Zoom in">+</button>
+            </div>
+            <button id="snapToggle" class="chip" aria-pressed="true" title="Snap to guides">Snap</button>
           </div>
-          <div class="toolbar-spacer"></div>
-          <div class="zoom-ctrl">
-            <button id="zoomOut" aria-label="Zoom out">−</button>
-            <button id="zoomFit">Fit</button>
-            <button id="zoomIn" aria-label="Zoom in">+</button>
-          </div>
-          <button id="snapToggle" class="chip" aria-pressed="true" title="Snap to guides">Snap</button>
         </div>
 
         <div class="canvas-wrap">
           <div class="canvas-stage" id="canvasStage">
             <div id="editorPage"></div>
           </div>
-          <div class="pagecap" id="pageCap">01 Front cover</div>
+          <div class="pagecap" id="pageCap">Page 1 of 8 · A5 · 148 × 210 mm</div>
         </div>
 
-        <div class="sheet-row">
+        <div class="sheet-tabs-row">
           <span class="micro-label">YOUR SHEET</span>
-          <span class="sheet-page-name" id="sheetPageName">Front cover</span>
-          <span class="pager" id="pager">‹ 01 / 08 ›</span>
-          <span class="sheet-hint">Click a page below to edit</span>
+          <div class="sheet-tabs" id="sheetTabs">
+            <!-- Populated by JS: one tab per A3 sheet -->
+          </div>
         </div>
 
         <div class="filmstrip-header">
           <span class="micro-label">THE PAGES</span>
           <span class="micro-label" id="pageRangeLabel">01—08</span>
         </div>
-        <div class="strip" id="strip" aria-label="Booklet pages"></div>
+        <div class="filmstrip-wrap">
+          <button class="filmstrip-arrow filmstrip-arrow-left" id="stripPrev" aria-label="Scroll left" hidden>‹</button>
+          <div class="strip" id="strip" aria-label="Booklet pages"></div>
+          <button class="filmstrip-arrow filmstrip-arrow-right" id="stripNext" aria-label="Scroll right">›</button>
+        </div>
       </div>
 
       <!-- Right rail -->
@@ -168,29 +201,20 @@
           <div class="imposition-diagram" id="impositionDiagram"></div>
           <ol class="steps" id="steps"></ol>
           <p class="note" id="sheetNote"></p>
-          <div class="export-btns">
-            <div class="micro-label">EXPORT PNG</div>
-            <div class="seg" id="segExport">
-              <button data-side="1">Side 1</button>
-              <button data-side="2">Side 2</button>
-            </div>
-          </div>
         </section>
       </aside>
     </main>
 
-    <!-- Sheets overlay -->
+    <!-- Sheets overlay (Preview) -->
     <div class="sheets-overlay" id="sheetsOverlay" hidden>
-      <div class="sheets-overlay-content">
-        <div class="sheets-overlay-header">
-          <h2 class="display-headline">Print sheets</h2>
-          <button class="btn-s" id="bCloseSheets">Close</button>
-        </div>
-        <p class="sub">Print sheets, one per A3. Top-row pages are upside down on purpose: they turn upright when you fold. Dashed blue lines are the folds and are not printed.</p>
-        <div class="sheets" id="sheets">
-          <!-- Sheet figures are generated dynamically by renderSheets() -->
-        </div>
+      <div class="sheets-overlay-header">
+        <h2>Sheet Preview</h2>
+        <button class="btn-s" id="bCloseSheets">Close</button>
       </div>
+      <div class="sheets-overlay-hint">
+        <p class="sub">One sheet, printed on both sides. Top-row pages are upside down on purpose: they turn upright when you fold. Dashed blue lines are the folds and are not printed.</p>
+      </div>
+      <div class="sheets" id="sheets"></div>
     </div>
   </div>
 
@@ -198,6 +222,7 @@
   <input type="file" id="filePhoto" accept="image/*" class="hidden-input">
   <input type="file" id="fileMany" accept="image/*" multiple class="hidden-input">
   <input type="file" id="fileJson" accept="application/json,.json,.bookletter.json" class="hidden-input">
+  <input type="color" id="customBg" class="hidden-input" value="#ffffff">
 
   <!-- Print area (hidden, built on print) -->
   <div id="printArea"></div>

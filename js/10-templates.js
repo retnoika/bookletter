@@ -1,26 +1,10 @@
 /**
- * Bookletter — layout templates + inline SVG shape library
+ * Bookletter — layout templates
  * Templates define layout in relative coordinates (0-1), applied to page mm.
  */
 (function() {
   'use strict';
   var BL = window.BL;
-
-  // ============ Shape SVG paths ============
-  // All shapes designed for viewBox="0 0 100 100"
-  BL.SHAPES = {
-    heart: '<path d="M50 88C25 70 5 55 5 35c0-15 12-25 25-25 8 0 15 5 20 12 5-7 12-12 20-12 13 0 25 10 25 25 0 20-20 35-45 53z"/>',
-    star: '<path d="M50 5l12 30h32l-25 20 10 32-29-20-29 20 10-32-25-20h32z"/>',
-    speech: '<path d="M10 10h80v55H45l-20 25v-25H10z"/>',
-    circle: '<circle cx="50" cy="50" r="45"/>',
-    flower: '<path d="M50 5c8 0 15 15 15 25s-7 15-15 15-15-5-15-15S42 5 50 5zm-30 25c5-6 20-3 27 5s5 17-2 23c-7 6-20 3-27-5s-5-17 2-23zm60 0c7 6 9 17 2 23s-20 11-27 5-9-17-2-23 20-11 27-5zm-45 40c-7-6-9-17-2-23s20-11 27-5 9 17 2 23-20 11-27 5zm30 0c7-6 20-3 27 5s5 17-2 23c-7 6-20 3-27-5s-5-17 2-23z"/>',
-    cloud: '<path d="M25 75c-11 0-20-9-20-20s9-20 20-20c1-11 10-20 22-20 10 0 18 6 21 15 2-1 5-2 7-2 11 0 20 9 20 20s-9 20-20 20z"/>',
-    arrow: '<path d="M50 5l40 45H65v45H35V50H10z"/>',
-    blob: '<path d="M70 15c20 10 25 35 15 55s-35 25-55 15S5 50 15 30 50 5 70 15z"/>'
-  };
-
-  BL.SHAPE_NAMES = ['heart', 'star', 'speech', 'circle', 'flower', 'cloud', 'arrow', 'blob'];
-
   // ============ Layout templates ============
   // Each slot: { kind, rect: [x%, y%, w%, h%], opts }
   // rect values 0-1, converted to mm when applied
@@ -139,10 +123,8 @@
       } else if (slot.kind === 'text') {
         var opts = slot.opts || {};
         layer = BL.newTextLayer(x, y, w, h, opts);
-      } else if (slot.kind === 'shape') {
-        var sopts = slot.opts || {};
-        layer = BL.newShapeLayer(x, y, w, h, sopts);
       } else {
+        // Skip unknown slot kinds (e.g., shape)
         continue;
       }
 

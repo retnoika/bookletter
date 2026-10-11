@@ -79,30 +79,9 @@
         tx.textContent = layer.text;
       }
       wrap.appendChild(tx);
-    } else if (layer.kind === 'shape') {
-      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('viewBox', '0 0 100 100');
-      svg.setAttribute('preserveAspectRatio', 'none');
-      svg.style.width = '100%';
-      svg.style.height = '100%';
-
-      var shapePath = BL.SHAPES[layer.shape] || BL.SHAPES.heart;
-      var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.innerHTML = shapePath;
-      var pathEl = g.firstChild;
-      if (pathEl) {
-        pathEl.setAttribute('fill', layer.color);
-        if (layer.stroke && layer.strokeWidth >= 0.25) {
-          pathEl.setAttribute('stroke', layer.stroke);
-          // strokeWidth in mm, need to scale to viewBox units
-          // viewBox 100x100, average of w/h in mm, scaled
-          var avgMm = (layer.w + layer.h) / 2;
-          var strokeVb = (layer.strokeWidth / avgMm) * 100;
-          pathEl.setAttribute('stroke-width', strokeVb);
-        }
-        svg.appendChild(pathEl);
-      }
-      wrap.appendChild(svg);
+    } else {
+      // Unknown layer kind - skip rendering
+      return null;
     }
 
     // Selection indicator for editor
@@ -134,7 +113,7 @@
     for (var i = 0; i < page.layers.length; i++) {
       var layer = page.layers[i];
       var layerEl = renderLayer(layer, opts);
-      pg.appendChild(layerEl);
+      if (layerEl) pg.appendChild(layerEl);
     }
 
     // Margin guide

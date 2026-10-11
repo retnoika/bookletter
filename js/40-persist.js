@@ -235,26 +235,39 @@
   // ============ Project open ============
   function validateProject(data) {
     if (!data || typeof data !== 'object') {
-      return 'Invalid file format';
+      return { error: 'Invalid file format' };
     }
     if (!Array.isArray(data.pages) || !isValidPageCount(data.pages.length)) {
-      return 'Not a Bookletter project: must have 8, 16, or 24 pages';
+      return { error: 'Not a Bookletter project: must have 8, 16, or 24 pages' };
     }
     // Migrate: add pageCount if missing
     if (!data.pageCount) {
       data.pageCount = data.pages.length;
     }
-    // Check each page has layers array
+    
+    // Valid layer kinds
+    var validKinds = ['photo', 'text'];
+    var skippedLayers = 0;
+    
+    // Check each page has layers array and filter unknown layer kinds
     for (var i = 0; i < data.pages.length; i++) {
       var page = data.pages[i];
       if (!page || typeof page !== 'object') {
-        return 'Invalid page data';
+        return { error: 'Invalid page data' };
       }
       if (!Array.isArray(page.layers)) {
         page.layers = [];
+      } else {
+        // Filter out unknown layer kinds (e.g., shape)
+        var originalCount = page.layers.length;
+        page.layers = page.layers.filter(function(layer) {
+          return layer && validKinds.indexOf(layer.kind) !== -1;
+        });
+        skippedLayers += originalCount - page.layers.length;
       }
     }
-    return null;
+    
+    return { error: null, skippedLayers: skippedLayers };
   }
 
   function openProject(file) {
@@ -263,9 +276,9 @@
       reader.onload = function() {
         try {
           var data = JSON.parse(reader.result);
-          var error = validateProject(data);
-          if (error) {
-            reject(new Error(error));
+          var result = validateProject(data);
+          if (result.error) {
+            reject(new Error(result.error));
             return;
           }
           
@@ -286,7 +299,7 @@
           BL.sel = null;
           BL.clearHistory();
           
-          resolve();
+          resolve({ skippedLayers: result.skippedLayers });
         } catch (e) {
           reject(new Error('Could not parse file: ' + e.message));
         }
@@ -302,10 +315,14 @@
     var file = e.target.files && e.target.files[0];
     if (!file) return;
     
-    openProject(file).then(function() {
+    openProject(file).then(function(result) {
       BL.renderAll();
       BL.save();
-      BL.toast('Project opened.');
+      if (result.skippedLayers > 0) {
+        BL.toast('Project opened. ' + result.skippedLayers + ' unsupported layer(s) skipped.');
+      } else {
+        BL.toast('Project opened.');
+      }
     }).catch(function(err) {
       BL.toast(err.message || 'That file is not a Bookletter project.');
     });

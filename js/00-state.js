@@ -71,27 +71,8 @@
     };
   }
 
-  function newShapeLayer(x, y, w, h, opts) {
-    opts = opts || {};
-    return {
-      id: genId(),
-      kind: 'shape',
-      x: x || 0,
-      y: y || 0,
-      w: w || 40,
-      h: h || 40,
-      rot: 0,
-      opacity: 1,
-      shape: opts.shape || 'heart',
-      color: opts.color || '#17261f',
-      stroke: opts.stroke || 0,
-      strokeWidth: opts.strokeWidth || 0.4
-    };
-  }
-
   BL.newPhotoLayer = newPhotoLayer;
   BL.newTextLayer = newTextLayer;
-  BL.newShapeLayer = newShapeLayer;
 
   // ============ Page factory ============
   function newPage() {
