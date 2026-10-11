@@ -1,6 +1,6 @@
 # Bookletter
 
-Design an 8-page A5 booklet and print it on one A3 sheet, both sides. Fold twice, slit one fold, and you have a hand-bound booklet.
+Design an 8, 16, or 24-page A5 booklet and print it on 1, 2, or 3 A3 sheets, both sides. Fold twice, slit one fold, nest the sections (for multi-sheet), and you have a hand-bound booklet.
 
 ## Use online
 
@@ -12,12 +12,13 @@ Download this folder and open `index.html` directly in your browser. No internet
 
 ## Designing your booklet
 
-1. **Choose orientation**: Portrait A5 (148 × 210 mm) or Landscape A5 (210 × 148 mm)
-2. **Use layout templates**: Click one of the layout icons to add photo and text frames to the current page
-3. **Add images**: Click a photo frame to choose an image, or drag and drop images onto the page
-4. **Add text**: Double-click a text layer to edit it inline; press Escape to finish
-5. **Add shapes**: Use the Shape button to add decorative elements
-6. **Set backgrounds**: Choose from preset colors or pick a custom color
+1. **Choose size**: Select 8, 16, or 24 pages (1, 2, or 3 A3 sheets)
+2. **Choose orientation**: Portrait A5 (148 × 210 mm) or Landscape A5 (210 × 148 mm)
+3. **Use layout templates**: Click one of the layout icons to add photo and text frames to the current page
+4. **Add images**: Click a photo frame to choose an image, or drag and drop images onto the page
+5. **Add text**: Double-click a text layer to edit it inline; press Escape to finish
+6. **Add shapes**: Use the Shape button to add decorative elements
+7. **Set backgrounds**: Choose from preset colors or pick a custom color
 
 Click a layer to select it and see its controls in the inspector panel.
 
@@ -49,13 +50,13 @@ Print your finished design on A3 paper, both sides:
 2. **Margins**: None
 3. **Background graphics**: On
 
-The app prints exactly two pages — side 1 and side 2. Browser printing rounds the page box to whole pixels, so it can land within about 0.2 mm of the true sheet size; the content itself is placed in exact millimetres.
+The app prints 2 pages per sheet (side 1 and side 2). For 16-page booklets, you'll print 4 pages; for 24-page booklets, 6 pages. Browser printing rounds the page box to whole pixels, so it can land within about 0.2 mm of the true sheet size; the content itself is placed in exact millimetres.
 
 Do a test print on plain paper first with page numbers enabled.
 
 ## Exporting for a print shop
 
-Use the **PNG 1** and **PNG 2** buttons to export each sheet side as a 300 dpi image file:
+Use the **PNG export** buttons to export each sheet side as a 300 dpi image file:
 
 - A3 (297 × 420 mm) → 3508 × 4961 pixels
 - SRA3 (320 × 450 mm) → 3780 × 5315 pixels
@@ -74,11 +75,19 @@ When everything is fine, the panel says "No print-safety issues found."
 
 ## Folding
 
-After printing:
+After printing each sheet:
 
-1. Place the sheet with side 1 facing up, pages 8 and 1 along the bottom
+1. Place the sheet with side 1 facing up, page numbers along the bottom
 2. Fold the top half **back behind** the sheet
 3. Fold the left half **back behind** the right half
 4. Page 1 is now your cover; the left fold is the spine
 5. Slit the folded top edge with a craft knife so the pages open
-6. Stitch or staple along the spine to bind
+
+### Multi-sheet nesting
+
+For 16 or 24-page booklets, after folding each sheet:
+
+6. **Nest the sections**: Place smaller signatures (sheets 2 and 3) inside larger ones (sheet 1 on the outside)
+7. Stitch or staple through all layers along the spine
+
+This is called saddle-stitch binding. The innermost section will have pages from the middle of the booklet (e.g., pages 9-16 for a 24-page book), and the outermost section (sheet 1) will have the covers and pages nearest to them.

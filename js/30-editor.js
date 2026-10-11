@@ -123,7 +123,7 @@
     var total = list.length;
     
     function findEmptyPhotoSlot() {
-      for (var pi = 0; pi < 8; pi++) {
+      for (var pi = 0; pi < BL.S.pages.length; pi++) {
         var page = BL.S.pages[pi];
         for (var li = 0; li < page.layers.length; li++) {
           var layer = page.layers[li];
@@ -738,7 +738,7 @@
     
     var cap = document.getElementById('pageCap');
     if (cap) {
-      cap.textContent = 'Page ' + (BL.cur + 1) + ' of 8 · A5 ' + pw + ' × ' + ph + ' mm';
+      cap.textContent = 'Page ' + (BL.cur + 1) + ' of ' + BL.S.pages.length + ' · A5 ' + pw + ' × ' + ph + ' mm';
     }
     
     return mm;

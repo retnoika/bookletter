@@ -1,6 +1,6 @@
 # Bookletter Design Notes
 
-Bookletter is a browser-only tool for designing 8-page A5 booklets that print on a single A3 sheet (both sides), fold twice, and become a hand-bound booklet.
+Bookletter is a browser-only tool for designing 8, 16, or 24-page A5 booklets that print on 1, 2, or 3 A3 sheets (both sides), fold twice, nest the sections, and become a hand-bound booklet.
 
 ## Architecture
 
@@ -29,7 +29,7 @@ State = {
   guide: true,                   // show margin guide
   safe: 8,                       // mm safe margin
   nums: false,                   // show page numbers
-  pages: [Page × 8]
+  pages: [Page × 8|16|24]        // 8, 16, or 24 pages (1, 2, or 3 sheets)
 }
 
 Page = {
@@ -64,9 +64,9 @@ These are the authoritative facts for sheet layout and folding. Do not modify.
 
 ### Page Geometry
 
-- **8 pages per booklet**
+- **8, 16, or 24 pages per booklet** (1, 2, or 3 A3 sheets)
 - Page = A5: portrait **148 × 210 mm** or landscape **210 × 148 mm**
-- One A3 sheet (**297 × 420 mm**) holds a 2×2 block of pages per side = 4 per side = **8 total**
+- One A3 sheet (**297 × 420 mm**) holds a 2×2 block of pages per side = 4 per side = **8 total per sheet**
 
 ### Sheet Sizes
 
@@ -78,7 +78,21 @@ These are the authoritative facts for sheet layout and folding. Do not modify.
 - Side 1 printed first
 - **Flip on the long edge** (short edge for landscape sheet) — back appears mirrored left/right, book-style
 
-### Imposition Grid
+### Imposition Algorithm (Nested Saddle-Stitch)
+
+For N total pages across k sheets (where N = 8k), each sheet k (1-based) uses:
+
+```
+a = 4(k-1) + 1
+b = N - 4(k-1)
+
+Side 1: [[b-3, a+3], [b, a]]     // top-left, top-right; bottom-left, bottom-right
+Side 2: [[a+2, b-2], [a+1, b-1]] // (after long-edge flip)
+
+Top row (row 0) is always rotated 180°.
+```
+
+#### 8-page booklet (1 sheet)
 
 **Side 1** (sheet frame; row 0 = top):
 ```
@@ -92,6 +106,30 @@ Top row rotated 180°.
 ```
 Top row rotated 180°.
 
+#### 16-page booklet (2 sheets)
+
+**Sheet 1:**
+- Side 1: `[[13, 4], [16, 1]]` (top row rotated 180°)
+- Side 2: `[[3, 14], [2, 15]]` (top row rotated 180°)
+
+**Sheet 2:**
+- Side 1: `[[9, 8], [12, 5]]` (top row rotated 180°)
+- Side 2: `[[7, 10], [6, 11]]` (top row rotated 180°)
+
+#### 24-page booklet (3 sheets)
+
+**Sheet 1:**
+- Side 1: `[[21, 4], [24, 1]]` (top row rotated 180°)
+- Side 2: `[[3, 22], [2, 23]]` (top row rotated 180°)
+
+**Sheet 2:**
+- Side 1: `[[17, 8], [20, 5]]` (top row rotated 180°)
+- Side 2: `[[7, 18], [6, 19]]` (top row rotated 180°)
+
+**Sheet 3:**
+- Side 1: `[[13, 12], [16, 9]]` (top row rotated 180°)
+- Side 2: `[[11, 14], [10, 15]]` (top row rotated 180°)
+
 ### Cell Placement
 
 ```
@@ -103,9 +141,10 @@ Each cell is the page size. Top-row cells rotate 180° about their center.
 ### Why This Order
 
 - Page 1 must be bottom-right quadrant (only panel facing reader after both folds)
-- Page 8 sits beside it, bottom-left
+- Page N (8, 16, or 24) sits beside it, bottom-left
 - Top row ends up folded behind → prints upside down
-- Long-edge duplex flip mirrors back side left/right → side 2 reads `[[3, 6], [2, 7]]`
+- Long-edge duplex flip mirrors back side left/right
+- For multi-sheet: sheets nest inside each other (sheet 1 = outermost, sheet k = innermost)
 
 ### Margins and Bleed
 
@@ -115,12 +154,17 @@ Each cell is the page size. Top-row cells rotate 180° about their center.
 
 ### Folding Instructions
 
-1. Side 1 facing you, with `8 | 1` along the bottom
+For each sheet:
+
+1. Side 1 facing you, with the last and first page numbers along the bottom
 2. Fold the top half **back behind** the sheet
 3. Fold the left half **back behind** the right half
-4. Page 1 is the cover; the left fold is the spine
-5. Slit the top fold with a craft knife so the pages open
-6. Stitch or staple the spine
+4. Slit the top fold with a craft knife so the pages open
+
+For multi-sheet booklets:
+
+5. **Nest the sections**: Place innermost sheets (sheet 2, 3) inside outermost (sheet 1)
+6. Stitch or staple through all layers along the spine (saddle-stitch binding)
 
 ---
 
@@ -148,12 +192,11 @@ Printing via the browser produces a 2-page PDF where each page corresponds to on
 - Autosave (IndexedDB with localStorage fallback)
 - Project save/open (.bookletter.json files)
 - Imposition preview with live sheet thumbnails
-- Print path: `@page` sized dynamically to sheet, 2-page output
+- Print path: `@page` sized dynamically to sheet, multi-page output for multi-sheet booklets
 - A3 and SRA3 sheet stock selection
 - Crop and fold marks on SRA3
 - Bleed (0mm or 3mm) on SRA3; refused on A3
 - Fold instructions adapted to current stock and orientation
-
-**Not yet implemented:**
-- 300 DPI PNG export per sheet
+- 8/16/24 page booklets (1/2/3 sheets) with nested saddle-stitch imposition
+- 300 DPI PNG export per sheet side
 - Print-safety warnings for safe-margin crossings and low-resolution photos

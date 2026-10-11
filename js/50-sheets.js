@@ -64,9 +64,18 @@
   }
 
   // ============ Build a sheet element ============
-  function buildSheet(side, opts) {
+  // sheetIdx = 1-based sheet number, side = 1 or 2
+  function buildSheet(sheetIdx, side, opts) {
+    // Support old signature: buildSheet(side, opts) for backward compatibility
+    if (typeof sheetIdx === 'number' && typeof side === 'object') {
+      opts = side;
+      side = sheetIdx;
+      sheetIdx = 1;
+    }
     opts = opts || {};
-    var grid = side === 1 ? BL.IMPOSITION.side1 : BL.IMPOSITION.side2;
+    var N = BL.S.pages.length;
+    var imp = computeImposition(sheetIdx, N);
+    var grid = side === 1 ? imp.side1 : imp.side2;
     var dims = BL.pageDims();
     var sheet = BL.sheetDims();
     var pw = dims[0], ph = dims[1];
@@ -88,7 +97,7 @@
       for (var c = 0; c < 2; c++) {
         var pageNum = grid[r][c];
         var pageIdx = pageNum - 1;
-        var rotated = r === BL.IMPOSITION.rotatedRow;
+        var rotated = r === imp.rotatedRow;
 
         var cell = BL.el('div', 'cell' + (rotated ? ' rot' : ''));
         cell.style.left = 'calc(var(--mm) * ' + (ox + c * pw) + ')';
@@ -196,22 +205,34 @@
 
     var sheet = BL.sheetDims();
     var sw = sheet[0];
+    var sheetCount = BL.S.pages.length / 8;
     var avail = sheetsHost.clientWidth || 900;
 
-    // Scale to fit two sheets side by side, or one if space is tight
-    var twoFit = avail >= 2 * sw * 0.8 + 40;
-    var mm = Math.max(0.5, Math.min(1.7, twoFit ? (avail - 48) / (2 * sw) : (avail - 8) / sw));
+    // Scale based on how many sheets we need to show (2 sides per sheet)
+    var totalSides = sheetCount * 2;
+    var mm = Math.max(0.4, Math.min(1.5, (avail - 20 * totalSides) / (sw * totalSides)));
     sheetsHost.style.setProperty('--mm', mm + 'px');
 
-    var frontHost = document.getElementById('sheetFront');
-    var backHost = document.getElementById('sheetBack');
-    if (frontHost) {
-      frontHost.innerHTML = '';
-      frontHost.appendChild(buildSheet(1, { tags: true }));
-    }
-    if (backHost) {
-      backHost.innerHTML = '';
-      backHost.appendChild(buildSheet(2, { tags: true }));
+    // Clear and rebuild sheet figures
+    sheetsHost.innerHTML = '';
+    for (var k = 1; k <= sheetCount; k++) {
+      // Side 1
+      var fig1 = document.createElement('figure');
+      fig1.innerHTML = '<figcaption>Sheet ' + k + ' side 1 <small>' + (k === 1 ? 'front (print first)' : '') + '</small></figcaption>';
+      var div1 = document.createElement('div');
+      div1.id = 'sheet-' + k + '-1';
+      div1.appendChild(buildSheet(k, 1, { tags: true }));
+      fig1.appendChild(div1);
+      sheetsHost.appendChild(fig1);
+      
+      // Side 2
+      var fig2 = document.createElement('figure');
+      fig2.innerHTML = '<figcaption>Sheet ' + k + ' side 2 <small>' + (k === 1 ? 'back' : '') + '</small></figcaption>';
+      var div2 = document.createElement('div');
+      div2.id = 'sheet-' + k + '-2';
+      div2.appendChild(buildSheet(k, 2, { tags: true }));
+      fig2.appendChild(div2);
+      sheetsHost.appendChild(fig2);
     }
 
     updateSheetNote();
@@ -250,13 +271,23 @@
     var sheet = BL.sheetDims();
     var sw = sheet[0], sh = sheet[1];
     var edge = BL.S.orient === 'portrait' ? 'long edge' : 'short edge';
+    var N = BL.S.pages.length;
+    var sheetCount = N / 8;
 
-    stepsEl.innerHTML = 
-      '<li><b>1 · Print</b>' + BL.S.sheet + ' ' + BL.S.orient + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + '.</li>' +
-      '<li><b>2 · First fold</b>Side 1 facing you, with 8 | 1 along the bottom. Fold the top half back, behind the sheet.</li>' +
+    var html = 
+      '<li><b>1 · Print</b>' + sheetCount + ' × ' + BL.S.sheet + ' ' + BL.S.orient + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + '.</li>' +
+      '<li><b>2 · First fold</b>Side 1 facing you, with ' + N + ' | 1 along the bottom. Fold the top half back, behind the sheet.</li>' +
       '<li><b>3 · Second fold</b>Fold the left half back behind the right half. Page 1 is now the cover and the left fold is the spine.</li>' +
-      '<li><b>4 · Slit the top fold</b>Use a craft knife to slit the top edge so the pages open.</li>' +
-      '<li><b>5 · Stitch or staple</b>Along the spine to bind.</li>';
+      '<li><b>4 · Slit the top fold</b>Use a craft knife to slit the top edge so the pages open.</li>';
+    
+    if (sheetCount > 1) {
+      html += '<li><b>5 · Nest sections</b>Place smaller signatures inside larger ones (sheet ' + sheetCount + ' innermost).</li>';
+      html += '<li><b>6 · Stitch or staple</b>Through all layers along the spine.</li>';
+    } else {
+      html += '<li><b>5 · Stitch or staple</b>Along the spine to bind.</li>';
+    }
+    
+    stepsEl.innerHTML = html;
   }
 
   // ============ Build print area ============
@@ -272,9 +303,12 @@
       pageStyle.textContent = '@page { size: ' + sw + 'mm ' + sh + 'mm; margin: 0; }';
     }
 
+    var sheetCount = BL.S.pages.length / 8;
     printArea.innerHTML = '';
-    printArea.appendChild(buildSheet(1, { tags: false }));
-    printArea.appendChild(buildSheet(2, { tags: false }));
+    for (var k = 1; k <= sheetCount; k++) {
+      printArea.appendChild(buildSheet(k, 1, { tags: false }));
+      printArea.appendChild(buildSheet(k, 2, { tags: false }));
+    }
   }
 
   // ============ Print / Save PDF ============

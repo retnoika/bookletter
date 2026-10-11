@@ -41,7 +41,7 @@
         <section class="rail-section">
           <div class="micro-label">01 / THE WORKTABLE</div>
           <h1 class="display-headline">Make your<br>booklet.</h1>
-          <p class="explainer">Design 8 A5 pages, print on one A3 sheet, fold twice.</p>
+          <p class="explainer">Design 8–24 A5 pages, print on A3 sheets, fold twice.</p>
           <button class="btn-accent btn-full" id="bFill">Fill from images…</button>
         </section>
 
@@ -50,6 +50,15 @@
           <div class="seg" id="segOrient">
             <button data-v="portrait">Portrait A5</button>
             <button data-v="landscape">Landscape A5</button>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <h3 class="section-title">Booklet size</h3>
+          <div class="seg" id="segPages">
+            <button data-v="8">8 pages</button>
+            <button data-v="16">16 pages</button>
+            <button data-v="24">24 pages</button>
           </div>
         </section>
 
@@ -135,7 +144,7 @@
 
         <div class="filmstrip-header">
           <span class="micro-label">THE PAGES</span>
-          <span class="micro-label">01—08</span>
+          <span class="micro-label" id="pageRangeLabel">01—08</span>
         </div>
         <div class="strip" id="strip" aria-label="Booklet pages"></div>
       </div>
@@ -155,7 +164,7 @@
 
         <section class="rail-section card">
           <div class="micro-label" id="printPlanLabel">03 / A3 PRINT PLAN</div>
-          <h3 class="display-headline card-title">One sheet.<br><span class="accent">Eight A5 pages.</span></h3>
+          <h3 class="display-headline card-title" id="printPlanTitle">One sheet.<br><span class="accent">Eight A5 pages.</span></h3>
           <div class="imposition-diagram" id="impositionDiagram"></div>
           <ol class="steps" id="steps"></ol>
           <p class="note" id="sheetNote"></p>
@@ -177,16 +186,9 @@
           <h2 class="display-headline">Print sheets</h2>
           <button class="btn-s" id="bCloseSheets">Close</button>
         </div>
-        <p class="sub">One sheet, printed on both sides. Top-row pages are upside down on purpose: they turn upright when you fold. Dashed blue lines are the folds and are not printed.</p>
+        <p class="sub">Print sheets, one per A3. Top-row pages are upside down on purpose: they turn upright when you fold. Dashed blue lines are the folds and are not printed.</p>
         <div class="sheets" id="sheets">
-          <figure>
-            <figcaption>Sheet side 1 <small>front (print first)</small></figcaption>
-            <div id="sheetFront"></div>
-          </figure>
-          <figure>
-            <figcaption>Sheet side 2 <small>back</small></figcaption>
-            <div id="sheetBack"></div>
-          </figure>
+          <!-- Sheet figures are generated dynamically by renderSheets() -->
         </div>
       </div>
     </div>

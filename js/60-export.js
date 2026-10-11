@@ -64,8 +64,17 @@
   }
 
   // ============ Draw a sheet to canvas (synchronous) ============
-  function drawSheet(ctx, side, pxPerMm, imageCache) {
-    var grid = side === 1 ? BL.IMPOSITION.side1 : BL.IMPOSITION.side2;
+  function drawSheet(ctx, sheetIdx, side, pxPerMm, imageCache) {
+    // Support old signature: drawSheet(ctx, side, pxPerMm, imageCache) for backward compatibility
+    if (typeof sheetIdx === 'number' && typeof side === 'number' && typeof pxPerMm === 'object') {
+      imageCache = pxPerMm;
+      pxPerMm = side;
+      side = sheetIdx;
+      sheetIdx = 1;
+    }
+    var N = BL.S.pages.length;
+    var imp = BL.computeImposition(sheetIdx, N);
+    var grid = side === 1 ? imp.side1 : imp.side2;
     var dims = BL.pageDims();
     var sheet = BL.sheetDims();
     var pw = dims[0], ph = dims[1];
@@ -84,7 +93,7 @@
       for (var c = 0; c < 2; c++) {
         var pageNum = grid[r][c];
         var pageIdx = pageNum - 1;
-        var rotated = r === BL.IMPOSITION.rotatedRow;
+        var rotated = r === imp.rotatedRow;
 
         var cellX = ox + c * pw;
         var cellY = oy + r * ph;
@@ -369,10 +378,16 @@
   }
 
   // ============ Export single sheet PNG ============
-  function exportSheet(side) {
+  function exportSheet(sheetIdx, side) {
     var dims = exportDims();
     var title = sanitizeFilename(BL.S.title || 'booklet');
-    var filename = title + '-sheet' + side + '.png';
+    var sheetCount = BL.S.pages.length / 8;
+    var filename;
+    if (sheetCount > 1) {
+      filename = title + '-sheet' + sheetIdx + '-side' + side + '.png';
+    } else {
+      filename = title + '-side' + side + '.png';
+    }
 
     BL.toast('Exporting ' + filename + '...');
 
@@ -384,7 +399,7 @@
       canvas.height = dims.height;
       var ctx = canvas.getContext('2d');
 
-      drawSheet(ctx, side, PX_PER_MM, imageCache);
+      drawSheet(ctx, sheetIdx, side, PX_PER_MM, imageCache);
 
       canvas.toBlob(function(blob) {
         downloadBlob(blob, filename);
@@ -594,9 +609,10 @@
     if (segExport) {
       segExport.addEventListener('click', function(e) {
         var btn = e.target.closest('button');
-        if (!btn || !btn.dataset.side) return;
-        var side = parseInt(btn.dataset.side, 10);
-        exportSheet(side);
+        if (!btn) return;
+        var sheetIdx = parseInt(btn.dataset.sheet || '1', 10);
+        var side = parseInt(btn.dataset.side || '1', 10);
+        exportSheet(sheetIdx, side);
       });
     }
 

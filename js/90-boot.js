@@ -28,14 +28,16 @@
 
   // ============ Page labels ============
   function getPageLabel(idx) {
+    var total = BL.S.pages.length;
     if (idx === 0) return ['FRONT', 'COVER'];
-    if (idx === 7) return ['BACK', 'COVER'];
+    if (idx === total - 1) return ['BACK', 'COVER'];
     return ['PAGE', String(idx + 1)];
   }
 
   function getPageTitle(idx) {
+    var total = BL.S.pages.length;
     if (idx === 0) return 'Front cover.';
-    if (idx === 7) return 'Back cover.';
+    if (idx === total - 1) return 'Back cover.';
     return 'Page ' + (idx + 1) + '.';
   }
 
@@ -46,7 +48,7 @@
     
     strip.innerHTML = '';
     
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < BL.S.pages.length; i++) {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'thumb' + (i === BL.cur ? ' sel' : '');
@@ -131,8 +133,13 @@
       existing[i].remove();
     }
     
-    // Determine spread pages: 1 alone, 2-3, 4-5, 6-7, 8 alone
-    var spreads = [[0], [1, 2], [3, 4], [5, 6], [7]];
+    // Compute spread pages dynamically: page 1 alone, pairs 2-3, 4-5, ..., page N alone
+    var N = BL.S.pages.length;
+    var spreads = [[0]];
+    for (var si = 1; si < N - 1; si += 2) {
+      spreads.push([si, si + 1]);
+    }
+    spreads.push([N - 1]);
     var currentSpread = null;
     for (var s = 0; s < spreads.length; s++) {
       if (spreads[s].indexOf(BL.cur) !== -1) {
@@ -178,7 +185,7 @@
     // Editing label
     var editingLabel = document.getElementById('editingLabel');
     if (editingLabel) {
-      editingLabel.textContent = 'EDITING / ' + String(BL.cur + 1).padStart(2, '0') + ' OF 08';
+      editingLabel.textContent = 'EDITING / ' + String(BL.cur + 1).padStart(2, '0') + ' OF ' + String(BL.S.pages.length).padStart(2, '0');
     }
     
     // Page title
@@ -203,7 +210,13 @@
     // Pager
     var pager = document.getElementById('pager');
     if (pager) {
-      pager.textContent = '‹ ' + String(BL.cur + 1).padStart(2, '0') + ' / 08 ›';
+      pager.textContent = '‹ ' + String(BL.cur + 1).padStart(2, '0') + ' / ' + String(BL.S.pages.length).padStart(2, '0') + ' ›';
+    }
+    
+    // Page range label
+    var pageRangeLabel = document.getElementById('pageRangeLabel');
+    if (pageRangeLabel) {
+      pageRangeLabel.textContent = '01—' + String(BL.S.pages.length).padStart(2, '0');
     }
     
     // Layout templates
@@ -293,27 +306,40 @@
   }
 
   function renderPrintPlan() {
+    var sheetCount = BL.S.pages.length / 8;
+    var pageCount = BL.S.pages.length;
+    
     // Print plan label
     var printPlanLabel = document.getElementById('printPlanLabel');
     if (printPlanLabel) {
-      printPlanLabel.textContent = '03 / ' + BL.S.sheet + ' PRINT PLAN';
+      printPlanLabel.textContent = '0' + sheetCount + ' / ' + BL.S.sheet + ' PRINT PLAN';
     }
     
-    // Imposition diagram
+    // Print plan title
+    var printPlanTitle = document.getElementById('printPlanTitle');
+    if (printPlanTitle) {
+      var sheetWord = sheetCount === 1 ? 'One sheet' : sheetCount + ' sheets';
+      var pageWord = pageCount === 8 ? 'Eight' : pageCount === 16 ? 'Sixteen' : 'Twenty-four';
+      printPlanTitle.innerHTML = sheetWord + '.<br><span class="accent">' + pageWord + ' A5 pages.</span>';
+    }
+    
+    // Imposition diagram - show all sheets
     var diagram = document.getElementById('impositionDiagram');
-    if (diagram && BL.IMPOSITION) {
+    if (diagram) {
       var html = '';
-      var side1 = BL.IMPOSITION.side1;
-      var rotatedRow = BL.IMPOSITION.rotatedRow;
-      
-      for (var r = 0; r < side1.length; r++) {
-        for (var c = 0; c < side1[r].length; c++) {
-          var pageNum = side1[r][c];
-          var isRot = r === rotatedRow;
-          html += '<div class="cell' + (isRot ? ' rot' : '') + '">' + pageNum + '</div>';
+      for (var k = 1; k <= sheetCount; k++) {
+        var imp = BL.computeImposition(k, pageCount);
+        if (sheetCount > 1) {
+          html += '<div class="sheet-label">Sheet ' + k + '</div>';
+        }
+        for (var r = 0; r < imp.side1.length; r++) {
+          for (var c = 0; c < imp.side1[r].length; c++) {
+            var pageNum = imp.side1[r][c];
+            var isRot = r === imp.rotatedRow;
+            html += '<div class="cell' + (isRot ? ' rot' : '') + '">' + pageNum + '</div>';
+          }
         }
       }
-      
       diagram.innerHTML = html;
     }
   }
@@ -361,6 +387,17 @@
       }
     }
     
+    // Page count segment
+    var segPages = document.getElementById('segPages');
+    if (segPages) {
+      var btns = segPages.querySelectorAll('button');
+      for (var i = 0; i < btns.length; i++) {
+        var isActive = parseInt(btns[i].dataset.v, 10) === BL.S.pages.length;
+        btns[i].classList.toggle('active', isActive);
+        btns[i].setAttribute('aria-pressed', isActive);
+      }
+    }
+    
     // Toggles
     var tGuide = document.getElementById('tGuide');
     if (tGuide) {
@@ -382,6 +419,7 @@
     updateTopBar();
     renderStrip();
     renderTools();
+    renderPrintPlan();
     renderEditor();
     BL.renderInspector();
     if (BL.renderSheets) BL.renderSheets();
@@ -446,6 +484,45 @@
           return;
         }
         if (BL.setBleed) BL.setBleed(val);
+        renderAll();
+        BL.save();
+      });
+    }
+    
+    // Page count segment
+    var segPages = document.getElementById('segPages');
+    if (segPages) {
+      segPages.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        var newCount = parseInt(btn.dataset.v, 10);
+        if (!BL.VALID_PAGE_COUNTS || BL.VALID_PAGE_COUNTS.indexOf(newCount) === -1) return;
+        var oldCount = BL.S.pages.length;
+        if (newCount === oldCount) return;
+        
+        if (newCount < oldCount) {
+          // Shrinking: confirm before deleting pages
+          var toDelete = oldCount - newCount;
+          if (!confirm('Changing to ' + newCount + ' pages will delete pages ' + (newCount + 1) + '–' + oldCount + '. Continue?')) {
+            return;
+          }
+        }
+        
+        BL.pushUndo();
+        
+        if (newCount > oldCount) {
+          // Growing: add pages
+          for (var i = oldCount; i < newCount; i++) {
+            BL.S.pages.push(BL.newPage());
+          }
+        } else {
+          // Shrinking: remove pages
+          BL.S.pages.length = newCount;
+          if (BL.cur >= newCount) BL.cur = newCount - 1;
+          BL.sel = null;
+        }
+        
+        BL.S.pageCount = newCount;
         renderAll();
         BL.save();
       });
