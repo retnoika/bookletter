@@ -4,121 +4,178 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bookletter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/app.css">
   <style id="pageStyle"></style>
 </head>
 <body>
   <div id="app">
-    <!-- Top bar -->
-    <header class="top">
-      <div class="brand">Bookletter</div>
+    <!-- Header bar -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="brand-name">Bookletter</div>
+        <div class="brand-tagline">One sheet of A3. Eight A5 pages.</div>
+      </div>
       
-      <div class="group">
+      <div class="header-title">
         <input type="text" id="titleInput" value="untitled booklet" aria-label="Booklet title">
       </div>
       
-      <div class="group">
-        <span class="cap">Pages</span>
-        <div class="seg" id="segOrient">
-          <button data-v="portrait">Portrait A5</button>
-          <button data-v="landscape">Landscape A5</button>
-        </div>
-      </div>
+      <span class="header-status" id="saved"></span>
       
-      <div class="group">
-        <span class="cap">Sheet</span>
-        <div class="seg" id="segSheet">
-          <button data-v="A3">A3</button>
-          <button data-v="SRA3">SRA3</button>
-        </div>
-      </div>
-      
-      <div class="group">
-        <span class="cap">Bleed</span>
-        <div class="seg" id="segBleed">
-          <button data-v="0">0mm</button>
-          <button data-v="3">3mm</button>
-        </div>
-      </div>
-      
-      <div class="group">
-        <button class="chip" id="tGuide">Margin guide</button>
-        <button class="chip" id="tNums">Page numbers</button>
-      </div>
-      
-      <div class="spacer"></div>
-      
-      <div class="group">
-        <span id="saved"></span>
-        <button class="btn" id="bFill">Fill from images…</button>
-        <button class="btn" id="bOpen">Open</button>
-        <button class="btn" id="bSave">Save</button>
-        <button class="btn" id="bNew">New booklet</button>
-        <div class="seg" id="segExport"><button data-side="1">PNG 1</button><button data-side="2">PNG 2</button></div>
-        <button class="btn primary" id="bPrint">Print / Save PDF</button>
+      <div class="header-actions">
+        <button class="btn-s" id="bOpen">Open</button>
+        <button class="btn-s" id="bSave">Save</button>
+        <button class="btn-s" id="bNew">New booklet</button>
+        <button class="btn-s" id="bSheets">Sheets</button>
+        <button class="btn-primary" id="bPrint">Print / Save PDF</button>
       </div>
     </header>
 
-    <!-- Main content -->
-    <div class="wrap">
-      <!-- Page strip -->
-      <div class="strip" id="strip" aria-label="Booklet pages"></div>
+    <!-- Main three-rail layout -->
+    <main class="main">
+      <!-- Left rail -->
+      <aside class="rail rail-left">
+        <section class="rail-section">
+          <div class="micro-label">01 / THE WORKTABLE</div>
+          <h1 class="display-headline">Make your<br>booklet.</h1>
+          <p class="explainer">Design 8 A5 pages, print on one A3 sheet, fold twice.</p>
+          <button class="btn-accent btn-full" id="bFill">Fill from images…</button>
+        </section>
 
-      <!-- Workspace -->
-      <div class="work">
-        <!-- Tools panel -->
-        <aside class="tools">
-          <div>
-            <h2 id="toolHead">Page 1</h2>
-            <p class="hint" id="toolSub">Front cover</p>
+        <section class="rail-section">
+          <h3 class="section-title">Pages</h3>
+          <div class="seg" id="segOrient">
+            <button data-v="portrait">Portrait A5</button>
+            <button data-v="landscape">Landscape A5</button>
           </div>
-          
-          <div>
-            <h3>Layout</h3>
-            <div class="layouts" id="layouts"></div>
-          </div>
-          
-          <div>
-            <h3>Add layer</h3>
-            <div class="add-btns">
-              <button class="btn" id="bAddPhoto">Photo</button>
-              <button class="btn" id="bAddText">Text</button>
-              <button class="btn" id="bAddShape">Shape</button>
-            </div>
-          </div>
-          
-          <div>
-            <h3>Background</h3>
-            <div class="sw" id="swatches"></div>
-          </div>
-          
-          <div>
-            <h3>Selected layer</h3>
-            <div id="inspector"></div>
-          </div>
-          
-          <div>
-            <h3>Print safety</h3>
-            <div id="safetyPanel" class="safety-panel"></div>
-          </div>
-        </aside>
+        </section>
 
-        <!-- Canvas -->
-        <div class="canvas">
+        <section class="rail-section">
+          <h3 class="section-title">Sheet</h3>
+          <div class="seg" id="segSheet">
+            <button data-v="A3">A3</button>
+            <button data-v="SRA3">SRA3</button>
+          </div>
+          <div class="seg" id="segBleed">
+            <button data-v="0">0mm</button>
+            <button data-v="3">3mm</button>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <h3 class="section-title">Paper + colour</h3>
+          <div class="sw" id="swatches"></div>
+        </section>
+
+        <section class="rail-section">
+          <h3 class="section-title">Layout</h3>
+          <div class="layouts" id="layouts"></div>
+        </section>
+
+        <section class="rail-section">
+          <h3 class="section-title">Add layer</h3>
+          <div class="add-btns">
+            <button class="btn-s" id="bAddPhoto">+ Add photo</button>
+            <button class="btn-s" id="bAddText">T Add text</button>
+            <button class="btn-s" id="bAddShape">◇ Add shape</button>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <div class="chip-row">
+            <button class="chip" id="tGuide">Margin guide</button>
+            <button class="chip" id="tNums">Page numbers</button>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Centre rail -->
+      <div class="rail rail-center">
+        <div class="center-header">
+          <div class="micro-label" id="editingLabel">EDITING / 01 OF 08</div>
+          <h2 class="display-headline" id="toolHead">Front cover.</h2>
+          <p class="hint" id="toolSub" style="display:none">Front cover</p>
+        </div>
+
+        <div class="center-toolbar">
+          <div class="seg seg-view" id="segView">
+            <button data-v="page" class="active">Page</button>
+            <button data-v="spread">Spread</button>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn-s" id="bAddPhotoAlt">+ Add photo</button>
+            <button class="btn-s" id="bAddTextAlt">T Add type</button>
+            <button class="btn-s" id="bClear">Clear page</button>
+          </div>
+        </div>
+
+        <div class="canvas-wrap">
           <div class="zoom-ctrl">
             <button id="zoomOut" aria-label="Zoom out">−</button>
             <button id="zoomFit">Fit</button>
             <button id="zoomIn" aria-label="Zoom in">+</button>
             <button id="snapToggle" class="chip" aria-pressed="true" title="Snap to guides">Snap</button>
           </div>
-          <div id="editorPage"></div>
-          <div class="pagecap" id="pageCap">Page 1 of 8 · A5 148 × 210 mm</div>
+          <div class="canvas-stage" id="canvasStage">
+            <div id="editorPage"></div>
+          </div>
+          <div class="pagecap" id="pageCap">01 Front cover</div>
         </div>
+
+        <div class="sheet-row">
+          <span class="micro-label">YOUR SHEET</span>
+          <span class="sheet-page-name" id="sheetPageName">Front cover</span>
+          <span class="pager" id="pager">‹ 01 / 08 ›</span>
+          <span class="sheet-hint">Click a page below to edit</span>
+        </div>
+
+        <div class="filmstrip-header">
+          <span class="micro-label">THE PAGES</span>
+          <span class="micro-label">01—08</span>
+        </div>
+        <div class="strip" id="strip" aria-label="Booklet pages"></div>
       </div>
 
-      <!-- Print sheets section -->
-      <section class="sheetsec">
-        <h2>Print sheets</h2>
+      <!-- Right rail -->
+      <aside class="rail rail-right">
+        <section class="rail-section card">
+          <div class="micro-label" id="inspectorLabel">SELECTED PAGE</div>
+          <h3 class="display-headline card-title" id="inspectorTitle">Add a photo</h3>
+          <div id="inspector"></div>
+        </section>
+
+        <section class="rail-section card">
+          <div class="micro-label">PRINT SAFETY</div>
+          <div id="safetyPanel" class="safety-panel"></div>
+        </section>
+
+        <section class="rail-section card">
+          <div class="micro-label" id="printPlanLabel">03 / A3 PRINT PLAN</div>
+          <h3 class="display-headline card-title">One sheet.<br><span class="accent">Eight A5 pages.</span></h3>
+          <div class="imposition-diagram" id="impositionDiagram"></div>
+          <ol class="steps" id="steps"></ol>
+          <p class="note" id="sheetNote"></p>
+          <div class="export-btns">
+            <div class="micro-label">EXPORT PNG</div>
+            <div class="seg" id="segExport">
+              <button data-side="1">Side 1</button>
+              <button data-side="2">Side 2</button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <!-- Sheets overlay -->
+    <div class="sheets-overlay" id="sheetsOverlay" hidden>
+      <div class="sheets-overlay-content">
+        <div class="sheets-overlay-header">
+          <h2 class="display-headline">Print sheets</h2>
+          <button class="btn-s" id="bCloseSheets">Close</button>
+        </div>
         <p class="sub">One sheet, printed on both sides. Top-row pages are upside down on purpose: they turn upright when you fold. Dashed green lines are the folds and are not printed.</p>
         <div class="sheets" id="sheets">
           <figure>
@@ -130,9 +187,7 @@
             <div id="sheetBack"></div>
           </figure>
         </div>
-        <ol class="steps" id="steps"></ol>
-        <p class="note" id="sheetNote"></p>
-      </section>
+      </div>
     </div>
   </div>
 
@@ -140,8 +195,6 @@
   <input type="file" id="filePhoto" accept="image/*" class="hidden-input">
   <input type="file" id="fileMany" accept="image/*" multiple class="hidden-input">
   <input type="file" id="fileJson" accept="application/json,.json,.bookletter.json" class="hidden-input">
-
-  <!-- Toast notifications -->
 
   <!-- Print area (hidden, built on print) -->
   <div id="printArea"></div>

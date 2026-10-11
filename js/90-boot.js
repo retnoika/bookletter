@@ -5,6 +5,9 @@
   'use strict';
   var BL = window.BL;
 
+  // ============ View mode ============
+  var viewMode = 'page';  // 'page' or 'spread'
+
   // ============ Toast ============
   var toastTimer = null;
 
@@ -13,15 +16,28 @@
     if (!el) return;
     
     el.textContent = msg;
-    el.classList.add('on');
+    el.classList.add('show');
     
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function() {
-      el.classList.remove('on');
+      el.classList.remove('show');
     }, 3200);
   }
 
   BL.toast = toast;
+
+  // ============ Page labels ============
+  function getPageLabel(idx) {
+    if (idx === 0) return ['FRONT', 'COVER'];
+    if (idx === 7) return ['BACK', 'COVER'];
+    return ['PAGE', String(idx + 1)];
+  }
+
+  function getPageTitle(idx) {
+    if (idx === 0) return 'Front cover.';
+    if (idx === 7) return 'Back cover.';
+    return 'Page ' + (idx + 1) + '.';
+  }
 
   // ============ Page strip rendering ============
   function renderStrip() {
@@ -33,27 +49,33 @@
     for (var i = 0; i < 8; i++) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'thumb';
-      btn.setAttribute('aria-current', i === BL.cur);
+      btn.className = 'thumb' + (i === BL.cur ? ' sel' : '');
       btn.dataset.page = i;
       
-      var box = document.createElement('div');
-      box.className = 'box';
-      box.style.setProperty('--mm', '0.55px');
-      box.appendChild(BL.renderPage(i, {}));
+      var pg = document.createElement('div');
+      pg.className = 'thumb-pg';
+      pg.style.setProperty('--mm', '0.5px');
+      pg.appendChild(BL.renderPage(i, {}));
+      
+      var num = document.createElement('div');
+      num.className = 'thumb-num';
+      num.textContent = String(i + 1).padStart(2, '0');
       
       var lbl = document.createElement('div');
-      lbl.className = 'lbl';
-      lbl.textContent = BL.PAGE_LABELS[i];
+      lbl.className = 'thumb-label';
+      var labels = getPageLabel(i);
+      lbl.innerHTML = labels[0] + '<br>' + labels[1];
       
-      btn.appendChild(box);
+      btn.appendChild(pg);
+      btn.appendChild(num);
       btn.appendChild(lbl);
       
       btn.addEventListener('click', (function(idx) {
         return function() {
           BL.cur = idx;
           BL.sel = null;
-          BL.renderAll();
+          viewMode = 'page';
+          renderAll();
         };
       })(i));
       
@@ -68,11 +90,30 @@
     var container = document.getElementById('editorPage');
     if (!container) return;
     
-    // Remove existing handles before clearing (they're inside the container)
+    var stage = document.getElementById('canvasStage');
+    
+    if (viewMode === 'spread') {
+      renderSpreadView(stage, container);
+    } else {
+      renderPageView(stage, container);
+    }
+  }
+
+  function renderPageView(stage, container) {
+    stage.classList.remove('spread-view');
+    
+    // Remove spread pages if any
+    var spreads = stage.querySelectorAll('.spread-page');
+    for (var i = 0; i < spreads.length; i++) {
+      spreads[i].remove();
+    }
+    
+    // Remove existing handles
     var oldHandles = container.querySelector('.layer-handles');
     if (oldHandles) oldHandles.remove();
     
     container.innerHTML = '';
+    container.style.display = 'block';
     container.appendChild(BL.renderPage(BL.cur, { edit: true, sel: BL.sel, nums: BL.S.nums }));
     BL.fitEditor();
     
@@ -80,27 +121,89 @@
     if (BL.renderHandles) BL.renderHandles();
   }
 
+  function renderSpreadView(stage, container) {
+    stage.classList.add('spread-view');
+    container.style.display = 'none';
+    
+    // Remove existing spread pages
+    var existing = stage.querySelectorAll('.spread-page');
+    for (var i = 0; i < existing.length; i++) {
+      existing[i].remove();
+    }
+    
+    // Determine spread pages: 1 alone, 2-3, 4-5, 6-7, 8 alone
+    var spreads = [[0], [1, 2], [3, 4], [5, 6], [7]];
+    var currentSpread = null;
+    for (var s = 0; s < spreads.length; s++) {
+      if (spreads[s].indexOf(BL.cur) !== -1) {
+        currentSpread = spreads[s];
+        break;
+      }
+    }
+    
+    if (!currentSpread) currentSpread = [BL.cur];
+    
+    var dims = BL.pageDims();
+    var scale = Math.min(
+      (stage.clientWidth - 40) / (dims[0] * currentSpread.length + 4),
+      (stage.clientHeight - 40) / dims[1]
+    ) || 1;
+    
+    for (var p = 0; p < currentSpread.length; p++) {
+      var pageIdx = currentSpread[p];
+      var div = document.createElement('div');
+      div.className = 'spread-page' + (pageIdx === BL.cur ? ' current' : '');
+      div.style.width = (dims[0] * scale) + 'px';
+      div.style.height = (dims[1] * scale) + 'px';
+      div.style.setProperty('--mm', scale + 'px');
+      div.appendChild(BL.renderPage(pageIdx, { nums: BL.S.nums }));
+      
+      div.addEventListener('click', (function(idx) {
+        return function() {
+          BL.cur = idx;
+          BL.sel = null;
+          viewMode = 'page';
+          renderAll();
+        };
+      })(pageIdx));
+      
+      stage.appendChild(div);
+    }
+  }
+
   BL.renderEditor = renderEditor;
 
   // ============ Tools panel rendering ============
   function renderTools() {
+    // Editing label
+    var editingLabel = document.getElementById('editingLabel');
+    if (editingLabel) {
+      editingLabel.textContent = 'EDITING / ' + String(BL.cur + 1).padStart(2, '0') + ' OF 08';
+    }
+    
     // Page title
     var toolHead = document.getElementById('toolHead');
     if (toolHead) {
-      toolHead.textContent = 'Page ' + (BL.cur + 1);
+      toolHead.textContent = getPageTitle(BL.cur);
     }
     
-    var toolSub = document.getElementById('toolSub');
-    if (toolSub) {
-      if (BL.cur === 0) {
-        toolSub.textContent = 'Front cover';
-      } else if (BL.cur === 7) {
-        toolSub.textContent = 'Back cover';
-      } else if (BL.cur % 2 === 1) {
-        toolSub.textContent = 'Inside, left-hand page';
-      } else {
-        toolSub.textContent = 'Inside, right-hand page';
-      }
+    // Page caption
+    var pageCap = document.getElementById('pageCap');
+    if (pageCap) {
+      var labels = getPageLabel(BL.cur);
+      pageCap.textContent = String(BL.cur + 1).padStart(2, '0') + ' ' + labels.join(' ').toLowerCase().replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+    }
+    
+    // Sheet page name
+    var sheetPageName = document.getElementById('sheetPageName');
+    if (sheetPageName) {
+      sheetPageName.textContent = getPageTitle(BL.cur).replace('.', '');
+    }
+    
+    // Pager
+    var pager = document.getElementById('pager');
+    if (pager) {
+      pager.textContent = '‹ ' + String(BL.cur + 1).padStart(2, '0') + ' / 08 ›';
     }
     
     // Layout templates
@@ -121,14 +224,20 @@
     }
     
     // Background swatches
-    var swatches = document.getElementById('swatches');
-    if (swatches) {
-      renderSwatches();
-    }
+    renderSwatches();
+    
+    // View mode toggle
+    updateViewToggle();
+    
+    // Inspector labels
+    updateInspectorLabels();
+    
+    // Print plan
+    renderPrintPlan();
   }
 
-  // Background colors from prototype
-  var BGS = ['#ffffff', '#f1f5ee', '#e0eed3', '#f7ecc4', '#dcebf1', '#f4dcd5', '#1f3a2c', '#17261f'];
+  // New color palette
+  var BGS = ['#FFFFFF', '#F3EADC', '#F8D97A', '#C7E67D', '#F6AA83', '#A8D9F9', '#1F3A2C', '#17261F'];
 
   function renderSwatches() {
     var swatches = document.getElementById('swatches');
@@ -143,9 +252,70 @@
     }
     
     // Custom color input
-    html += '<input type="color" id="customBg" value="' + page.bg + '" title="Custom color">';
+    html += '<button data-c="custom" style="background:linear-gradient(135deg, #fff 50%, ' + page.bg + ' 50%)" aria-label="Custom color"></button>';
+    html += '<input type="color" id="customBg" value="' + page.bg + '" style="display:none">';
     
     swatches.innerHTML = html;
+  }
+
+  function updateViewToggle() {
+    var segView = document.getElementById('segView');
+    if (!segView) return;
+    
+    var btns = segView.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      var isActive = btns[i].dataset.v === viewMode;
+      btns[i].classList.toggle('active', isActive);
+      btns[i].setAttribute('aria-pressed', isActive);
+    }
+  }
+
+  function updateInspectorLabels() {
+    var inspectorLabel = document.getElementById('inspectorLabel');
+    var inspectorTitle = document.getElementById('inspectorTitle');
+    
+    if (BL.sel && BL.S.pages[BL.cur]) {
+      var layer = BL.findLayer(BL.sel);
+      if (layer && inspectorLabel && inspectorTitle) {
+        inspectorLabel.textContent = 'SELECTED LAYER';
+        if (layer.kind === 'photo') {
+          inspectorTitle.textContent = layer.src ? 'Photo' : 'Add a photo';
+        } else if (layer.kind === 'text') {
+          inspectorTitle.textContent = 'Text';
+        } else if (layer.kind === 'shape') {
+          inspectorTitle.textContent = 'Shape';
+        }
+      }
+    } else {
+      if (inspectorLabel) inspectorLabel.textContent = 'SELECTED PAGE';
+      if (inspectorTitle) inspectorTitle.textContent = 'Select a layer';
+    }
+  }
+
+  function renderPrintPlan() {
+    // Print plan label
+    var printPlanLabel = document.getElementById('printPlanLabel');
+    if (printPlanLabel) {
+      printPlanLabel.textContent = '03 / ' + BL.S.sheet + ' PRINT PLAN';
+    }
+    
+    // Imposition diagram
+    var diagram = document.getElementById('impositionDiagram');
+    if (diagram && BL.IMPOSITION) {
+      var html = '';
+      var side1 = BL.IMPOSITION.side1;
+      var rotatedRow = BL.IMPOSITION.rotatedRow;
+      
+      for (var r = 0; r < side1.length; r++) {
+        for (var c = 0; c < side1[r].length; c++) {
+          var pageNum = side1[r][c];
+          var isRot = r === rotatedRow;
+          html += '<div class="cell' + (isRot ? ' rot' : '') + '">' + pageNum + '</div>';
+        }
+      }
+      
+      diagram.innerHTML = html;
+    }
   }
 
   BL.renderTools = renderTools;
@@ -163,7 +333,31 @@
     if (segOrient) {
       var btns = segOrient.querySelectorAll('button');
       for (var i = 0; i < btns.length; i++) {
-        btns[i].setAttribute('aria-pressed', btns[i].dataset.v === BL.S.orient);
+        var isActive = btns[i].dataset.v === BL.S.orient;
+        btns[i].classList.toggle('active', isActive);
+        btns[i].setAttribute('aria-pressed', isActive);
+      }
+    }
+    
+    // Sheet
+    var segSheet = document.getElementById('segSheet');
+    if (segSheet) {
+      var btns = segSheet.querySelectorAll('button');
+      for (var i = 0; i < btns.length; i++) {
+        var isActive = btns[i].dataset.v === BL.S.sheet;
+        btns[i].classList.toggle('active', isActive);
+        btns[i].setAttribute('aria-pressed', isActive);
+      }
+    }
+    
+    // Bleed
+    var segBleed = document.getElementById('segBleed');
+    if (segBleed && BL.getBleed !== undefined) {
+      var btns = segBleed.querySelectorAll('button');
+      for (var i = 0; i < btns.length; i++) {
+        var isActive = parseInt(btns[i].dataset.v, 10) === BL.getBleed();
+        btns[i].classList.toggle('active', isActive);
+        btns[i].setAttribute('aria-pressed', isActive);
       }
     }
     
@@ -171,11 +365,13 @@
     var tGuide = document.getElementById('tGuide');
     if (tGuide) {
       tGuide.setAttribute('aria-pressed', BL.S.guide);
+      tGuide.classList.toggle('active', BL.S.guide);
     }
     
     var tNums = document.getElementById('tNums');
     if (tNums) {
       tNums.setAttribute('aria-pressed', BL.S.nums);
+      tNums.classList.toggle('active', BL.S.nums);
     }
   }
 
@@ -225,6 +421,36 @@
       });
     }
     
+    // Sheet segment
+    var segSheet = document.getElementById('segSheet');
+    if (segSheet) {
+      segSheet.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        BL.pushUndo();
+        BL.S.sheet = btn.dataset.v;
+        renderAll();
+        BL.save();
+      });
+    }
+    
+    // Bleed segment
+    var segBleed = document.getElementById('segBleed');
+    if (segBleed) {
+      segBleed.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        var val = parseInt(btn.dataset.v, 10);
+        if (val > 0 && BL.canBleed && !BL.canBleed()) {
+          BL.toast('Bleed requires SRA3 stock. A3 has only 0.5mm spare per side.');
+          return;
+        }
+        if (BL.setBleed) BL.setBleed(val);
+        renderAll();
+        BL.save();
+      });
+    }
+    
     // Guide toggle
     var tGuide = document.getElementById('tGuide');
     if (tGuide) {
@@ -243,12 +469,57 @@
         BL.S.nums = !BL.S.nums;
         updateTopBar();
         renderStrip();
+        renderEditor();
+        if (BL.renderSheets) BL.renderSheets();
         BL.save();
       });
     }
+    
+    // Sheets overlay button
+    var bSheets = document.getElementById('bSheets');
+    if (bSheets) {
+      bSheets.addEventListener('click', function() {
+        var overlay = document.getElementById('sheetsOverlay');
+        if (overlay) {
+          overlay.hidden = false;
+          if (BL.renderSheets) BL.renderSheets();
+        }
+      });
+    }
+    
+    // Close sheets overlay
+    var bCloseSheets = document.getElementById('bCloseSheets');
+    if (bCloseSheets) {
+      bCloseSheets.addEventListener('click', function() {
+        var overlay = document.getElementById('sheetsOverlay');
+        if (overlay) overlay.hidden = true;
+      });
+    }
+    
+    // Escape to close overlay
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var overlay = document.getElementById('sheetsOverlay');
+        if (overlay && !overlay.hidden) {
+          overlay.hidden = true;
+        }
+      }
+    });
   }
 
   function setupTools() {
+    // View mode toggle
+    var segView = document.getElementById('segView');
+    if (segView) {
+      segView.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        viewMode = btn.dataset.v;
+        renderEditor();
+        updateViewToggle();
+      });
+    }
+    
     // Layout templates
     var layouts = document.getElementById('layouts');
     if (layouts) {
@@ -276,6 +547,12 @@
         var btn = e.target.closest('button[data-c]');
         if (!btn) return;
         
+        if (btn.dataset.c === 'custom') {
+          var customBg = document.getElementById('customBg');
+          if (customBg) customBg.click();
+          return;
+        }
+        
         BL.pushUndo();
         BL.S.pages[BL.cur].bg = btn.dataset.c;
         renderSwatches();
@@ -296,7 +573,7 @@
       });
     }
     
-    // Add layer buttons
+    // Add layer buttons (left rail)
     var bAddPhoto = document.getElementById('bAddPhoto');
     if (bAddPhoto) {
       bAddPhoto.addEventListener('click', BL.addPhotoLayer);
@@ -310,6 +587,31 @@
     var bAddShape = document.getElementById('bAddShape');
     if (bAddShape) {
       bAddShape.addEventListener('click', BL.addShapeLayer);
+    }
+    
+    // Add layer buttons (center toolbar)
+    var bAddPhotoAlt = document.getElementById('bAddPhotoAlt');
+    if (bAddPhotoAlt) {
+      bAddPhotoAlt.addEventListener('click', BL.addPhotoLayer);
+    }
+    
+    var bAddTextAlt = document.getElementById('bAddTextAlt');
+    if (bAddTextAlt) {
+      bAddTextAlt.addEventListener('click', BL.addTextLayer);
+    }
+    
+    // Clear page button
+    var bClear = document.getElementById('bClear');
+    if (bClear) {
+      bClear.addEventListener('click', function() {
+        BL.pushUndo();
+        BL.S.pages[BL.cur].layers = [];
+        BL.sel = null;
+        renderEditor();
+        BL.renderInspector();
+        renderStrip();
+        BL.save();
+      });
     }
     
     // Zoom controls
