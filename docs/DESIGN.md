@@ -78,57 +78,53 @@ These are the authoritative facts for sheet layout and folding. Do not modify.
 - Side 1 printed first
 - **Flip on the long edge** (short edge for landscape sheet) — back appears mirrored left/right, book-style
 
-### Imposition Algorithm (Nested Saddle-Stitch)
+### Imposition Algorithm (Offset-Based)
 
-For N total pages across k sheets (where N = 8k), each sheet k (1-based) uses:
+Each sheet carries 8 **consecutive** pages. Sheet k (1-based) uses the base 8-page table with every page number shifted by `8 * (k - 1)`.
 
+**Base 8-page table:**
 ```
-a = 4(k-1) + 1
-b = N - 4(k-1)
-
-Side 1: [[b-3, a+3], [b, a]]     // top-left, top-right; bottom-left, bottom-right
-Side 2: [[a+2, b-2], [a+1, b-1]] // (after long-edge flip)
+Side 1: [[5, 4], [8, 1]]   // top-left, top-right; bottom-left, bottom-right
+Side 2: [[3, 6], [2, 7]]   // after long-edge flip
 
 Top row (row 0) is always rotated 180°.
 ```
 
+**For sheet k with offset = 8 * (k - 1):**
+```
+Side 1: [[5+offset, 4+offset], [8+offset, 1+offset]]
+Side 2: [[3+offset, 6+offset], [2+offset, 7+offset]]
+```
+
 #### 8-page booklet (1 sheet)
 
-**Side 1** (sheet frame; row 0 = top):
-```
-[[5, 4], [8, 1]]
-```
-Top row rotated 180°.
-
-**Side 2** (as drawn in side-2 frame; row 0 = top):
-```
-[[3, 6], [2, 7]]
-```
-Top row rotated 180°.
+**Sheet 1** (pages 1-8, offset 0):
+- Side 1: `[[5, 4], [8, 1]]` (top row rotated 180°)
+- Side 2: `[[3, 6], [2, 7]]` (top row rotated 180°)
 
 #### 16-page booklet (2 sheets)
 
-**Sheet 1:**
-- Side 1: `[[13, 4], [16, 1]]` (top row rotated 180°)
-- Side 2: `[[3, 14], [2, 15]]` (top row rotated 180°)
+**Sheet 1** (pages 1-8, offset 0):
+- Side 1: `[[5, 4], [8, 1]]` (top row rotated 180°)
+- Side 2: `[[3, 6], [2, 7]]` (top row rotated 180°)
 
-**Sheet 2:**
-- Side 1: `[[9, 8], [12, 5]]` (top row rotated 180°)
-- Side 2: `[[7, 10], [6, 11]]` (top row rotated 180°)
+**Sheet 2** (pages 9-16, offset 8):
+- Side 1: `[[13, 12], [16, 9]]` (top row rotated 180°)
+- Side 2: `[[11, 14], [10, 15]]` (top row rotated 180°)
 
 #### 24-page booklet (3 sheets)
 
-**Sheet 1:**
-- Side 1: `[[21, 4], [24, 1]]` (top row rotated 180°)
-- Side 2: `[[3, 22], [2, 23]]` (top row rotated 180°)
+**Sheet 1** (pages 1-8, offset 0):
+- Side 1: `[[5, 4], [8, 1]]` (top row rotated 180°)
+- Side 2: `[[3, 6], [2, 7]]` (top row rotated 180°)
 
-**Sheet 2:**
-- Side 1: `[[17, 8], [20, 5]]` (top row rotated 180°)
-- Side 2: `[[7, 18], [6, 19]]` (top row rotated 180°)
-
-**Sheet 3:**
+**Sheet 2** (pages 9-16, offset 8):
 - Side 1: `[[13, 12], [16, 9]]` (top row rotated 180°)
 - Side 2: `[[11, 14], [10, 15]]` (top row rotated 180°)
+
+**Sheet 3** (pages 17-24, offset 16):
+- Side 1: `[[21, 20], [24, 17]]` (top row rotated 180°)
+- Side 2: `[[19, 22], [18, 23]]` (top row rotated 180°)
 
 ### Cell Placement
 
@@ -140,11 +136,13 @@ Each cell is the page size. Top-row cells rotate 180° about their center.
 
 ### Why This Order
 
-- Page 1 must be bottom-right quadrant (only panel facing reader after both folds)
-- Page N (8, 16, or 24) sits beside it, bottom-left
-- Top row ends up folded behind → prints upside down
+- Page 1 must be at bottom-right quadrant (only panel facing reader after both folds)
+- For single sheet: page 8 sits beside it at bottom-left
+- Top row ends up folded behind → prints upside down (rotated 180°)
 - Long-edge duplex flip mirrors back side left/right
-- For multi-sheet: sheets nest inside each other (sheet 1 = outermost, sheet k = innermost)
+- For multi-sheet: each sheet carries 8 consecutive pages (sheet 1 = pages 1-8, sheet 2 = pages 9-16, etc.)
+- Sheets nest inside each other (sheet 1 = outermost, sheet N = innermost)
+- Reading order runs straight through: 1, 2, 3, ..., N
 
 ### Margins and Bleed
 
@@ -156,15 +154,16 @@ Each cell is the page size. Top-row cells rotate 180° about their center.
 
 For each sheet:
 
-1. Side 1 facing you, with the last and first page numbers along the bottom
+1. Side 1 facing you, page numbers along the bottom
 2. Fold the top half **back behind** the sheet
 3. Fold the left half **back behind** the right half
 4. Slit the top fold with a craft knife so the pages open
 
 For multi-sheet booklets:
 
-5. **Nest the sections**: Place innermost sheets (sheet 2, 3) inside outermost (sheet 1)
+5. **Nest the sections**: Place sheet 2 (and sheet 3 for 24-page) inside sheet 1
 6. Stitch or staple through all layers along the spine (saddle-stitch binding)
+7. Reading order runs 1, 2, 3, ... straight through to the last page
 
 ---
 

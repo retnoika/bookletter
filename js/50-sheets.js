@@ -2,38 +2,20 @@
  * Bookletter — imposition and print engine
  * 8/16/24-page A5 booklet on 1-3 A3/SRA3 sheets, both sides, fold twice.
  * All geometry in millimetres.
+ * 
+ * Imposition is computed by js/imposition.js (single source of truth).
  */
 (function() {
   'use strict';
   var BL = window.BL;
 
-  // ============ Nested Imposition Computation ============
-  // For sheet k (1-based) with N total pages:
-  // a = 4(k-1) + 1, b = N - 4(k-1)
-  // Side 1: [[b-3, a+3], [b, a]]  (top-left, top-right; bottom-left, bottom-right)
-  // Side 2: [[a+2, b-2], [a+1, b-1]]
-  // Top row (row 0) is always rotated 180°.
-  function computeImposition(sheetIndex, pageCount) {
-    var k = sheetIndex;  // 1-based
-    var N = pageCount;
-    var a = 4 * (k - 1) + 1;
-    var b = N - 4 * (k - 1);
-    return {
-      side1: [[b - 3, a + 3], [b, a]],
-      side2: [[a + 2, b - 2], [a + 1, b - 1]],
-      rotatedRow: 0
-    };
-  }
-  BL.computeImposition = computeImposition;
-
-  // Legacy: BL.IMPOSITION for backward compatibility (sheet 1, 8 pages)
+  // Legacy: BL.IMPOSITION for backward compatibility (sheet 1 of current booklet)
   // Computed on demand to reflect current state
   Object.defineProperty(BL, 'IMPOSITION', {
     get: function() {
-      return computeImposition(1, BL.S.pages.length);
+      return BL.computeImposition(1, BL.S.pages.length);
     }
   });
-
 
   // ============ Bleed state ============
   var bleed = 0;  // 0 or 3 mm
@@ -74,7 +56,7 @@
     }
     opts = opts || {};
     var N = BL.S.pages.length;
-    var imp = computeImposition(sheetIdx, N);
+    var imp = BL.computeImposition(sheetIdx, N);
     var grid = side === 1 ? imp.side1 : imp.side2;
     var dims = BL.pageDims();
     var sheet = BL.sheetDims();

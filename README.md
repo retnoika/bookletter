@@ -80,14 +80,14 @@ After printing each sheet:
 1. Place the sheet with side 1 facing up, page numbers along the bottom
 2. Fold the top half **back behind** the sheet
 3. Fold the left half **back behind** the right half
-4. Page 1 is now your cover; the left fold is the spine
-5. Slit the folded top edge with a craft knife so the pages open
+4. Slit the folded top edge with a craft knife so the pages open
 
 ### Multi-sheet nesting
 
 For 16 or 24-page booklets, after folding each sheet:
 
-6. **Nest the sections**: Place smaller signatures (sheets 2 and 3) inside larger ones (sheet 1 on the outside)
+5. **Nest the sections**: Place sheet 2 (and sheet 3 for 24-page) inside sheet 1
+6. The outermost section (sheet 1) has pages 1-8, sheet 2 has pages 9-16, sheet 3 has pages 17-24
 7. Stitch or staple through all layers along the spine
 
-This is called saddle-stitch binding. The innermost section will have pages from the middle of the booklet (e.g., pages 9-16 for a 24-page book), and the outermost section (sheet 1) will have the covers and pages nearest to them.
+This is saddle-stitch binding. Reading order runs straight through: 1, 2, 3, ... all the way to the last page.

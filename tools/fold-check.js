@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 /**
- * Fold check — verifies nested imposition for 1, 2, or 3 sheet booklets.
+ * Fold check — verifies imposition for 1, 2, or 3 sheet booklets.
  * 
- * Simulates the folding process for each sheet:
- * 1. Fold top half back behind the sheet
- * 2. Fold left half back behind the right half
- * 3. Slit the top fold
+ * Uses js/imposition.js (single source of truth) for the imposition tables.
  * 
- * For multi-sheet booklets, verifies nested saddle-stitch order:
- * - All pages 1..N appear exactly once across all sheets
- * - Page 1 is always on sheet 1, side 1, bottom-right (the cover after folding)
- * - Page N is always on sheet 1, side 1, bottom-left (back cover)
+ * Verifies:
+ * 1. READING SEQUENCE: Concatenating all sheets' reading orders produces 1,2,3,...,N
+ * 2. COVERAGE: All pages 1..N appear exactly once across all sheets
+ * 3. ROTATIONS: Top row pages print at 180°, bottom row at 0°
+ * 4. POSITIONS: Page 1 at sheet 1 side 1 bottom-right, page N at bottom-left
  * 
  * Usage:
  *   node tools/fold-check.js             # Test 8 pages (default)
@@ -18,23 +16,12 @@
  *   node tools/fold-check.js --pages=24  # Test 24 pages
  */
 
+const imposition = require('../js/imposition.js');
+const { computeImposition, getSheetReadingOrder, getBookletReadingOrder, verifyReadingOrder } = imposition;
+
 const VALID_PAGE_COUNTS = [8, 16, 24];
 
-// ============ Imposition computation ============
-// Matches js/50-sheets.js computeImposition()
-function computeImposition(sheetIndex, pageCount) {
-  const k = sheetIndex;  // 1-based
-  const N = pageCount;
-  const a = 4 * (k - 1) + 1;
-  const b = N - 4 * (k - 1);
-  return {
-    side1: [[b - 3, a + 3], [b, a]],
-    side2: [[a + 2, b - 2], [a + 1, b - 1]],
-    rotatedRow: 0
-  };
-}
-
-// ============ Build physical sheet layout ============
+// ============ Build physical sheet layout with rotation info ============
 function buildSheetLayout(grid, rotatedRow) {
   const layout = [];
   for (let r = 0; r < 2; r++) {
@@ -50,37 +37,26 @@ function buildSheetLayout(grid, rotatedRow) {
   return layout;
 }
 
-// ============ Simulate folding for one sheet ============
-/**
- * Physical folding process:
- * 1. Side 1 up, portrait orientation
- * 2. Fold top half BACK (behind the sheet)
- * 3. Fold left half BACK (behind the right half)
- * 4. Slit the top fold
- * 
- * Returns the 8 pages in reading order for this sheet.
- * For the OUTERMOST sheet (sheet 1), these are pages 1-4 and N-3..N.
- * For inner sheets, these are middle pages.
- */
+// ============ Simulate folding for one sheet (with rotation checks) ============
 function simulateFoldForSheet(side1Layout, side2Layout) {
-  // After folding, the reading order is determined by physical positions:
-  // Page positions after folding (verified manually):
+  // After folding, the reading order is determined by physical positions.
+  // Each position has expected rotation after the folds.
   const readingOrder = [
-    // Position 1 (cover): side1[1][1] = bottom-right of side 1
+    // Position 1 (cover): side1[1][1] = bottom-right of side 1 - upright
     { page: side1Layout[1][1].page, rot: side1Layout[1][1].rot, expected: 0 },
-    // Position 2: side2[1][0] = bottom-left of side 2 (at right after flip)
+    // Position 2: side2[1][0] = bottom-left of side 2 - upright
     { page: side2Layout[1][0].page, rot: side2Layout[1][0].rot, expected: 0 },
-    // Position 3: side2[0][0] = top-left of side 2 (after slit)
+    // Position 3: side2[0][0] = top-left of side 2 - was rotated, now upright
     { page: side2Layout[0][0].page, rot: side2Layout[0][0].rot, expected: 180 },
-    // Position 4: side1[0][1] = top-right of side 1 (after slit)
+    // Position 4: side1[0][1] = top-right of side 1 - was rotated, now upright
     { page: side1Layout[0][1].page, rot: side1Layout[0][1].rot, expected: 180 },
-    // Position 5: side1[0][0] = top-left of side 1 (center spread right)
+    // Position 5: side1[0][0] = top-left of side 1 - was rotated, now upright
     { page: side1Layout[0][0].page, rot: side1Layout[0][0].rot, expected: 180 },
-    // Position 6: side2[0][1] = top-right of side 2 (at left after flip)
+    // Position 6: side2[0][1] = top-right of side 2 - was rotated, now upright
     { page: side2Layout[0][1].page, rot: side2Layout[0][1].rot, expected: 180 },
-    // Position 7: side2[1][1] = bottom-right of side 2 (at left after flip)
+    // Position 7: side2[1][1] = bottom-right of side 2 - upright
     { page: side2Layout[1][1].page, rot: side2Layout[1][1].rot, expected: 0 },
-    // Position 8 (back cover): side1[1][0] = bottom-left of side 1
+    // Position 8 (back cover of this sheet): side1[1][0] = bottom-left of side 1 - upright
     { page: side1Layout[1][0].page, rot: side1Layout[1][0].rot, expected: 0 }
   ];
   return readingOrder;
@@ -90,10 +66,33 @@ function simulateFoldForSheet(side1Layout, side2Layout) {
 function verify(pageCount) {
   console.log('=== Bookletter Fold Verification ===');
   console.log('Page count:', pageCount);
-  console.log('Sheet count:', pageCount / 8);
+  const sheetCount = pageCount / 8;
+  console.log('Sheet count:', sheetCount);
   console.log('');
 
-  const sheetCount = pageCount / 8;
+  // ====== CRITICAL CHECK: Reading sequence must be 1,2,3,...,N ======
+  console.log('--- Reading Sequence Check ---');
+  const fullReadingOrder = getBookletReadingOrder(pageCount);
+  const expectedSequence = Array.from({ length: pageCount }, (_, i) => i + 1);
+  
+  console.log('Expected sequence: 1,2,3,...,' + pageCount);
+  console.log('Actual sequence:   ' + fullReadingOrder.join(','));
+  
+  const seqError = verifyReadingOrder(pageCount);
+  if (seqError) {
+    console.log('');
+    console.log('READING ORDER MISMATCH!');
+    console.log('First divergence at position ' + (seqError.firstMismatch.position + 1) + ':');
+    console.log('  Expected page: ' + seqError.firstMismatch.expectedPage);
+    console.log('  Actual page:   ' + seqError.firstMismatch.actualPage);
+    console.log('');
+    console.log('FAIL: Reading sequence verification failed x');
+    return false;
+  }
+  console.log('Reading sequence correct v');
+  console.log('');
+
+  // ====== Per-sheet verification (rotations, duplicates) ======
   const allPages = new Set();
   let allPassed = true;
 
@@ -122,7 +121,7 @@ function verify(pageCount) {
         allPassed = false;
       }
       
-      // Track all pages
+      // Track all pages for coverage check
       if (allPages.has(entry.page)) {
         console.log(`    Position ${i + 1}: Page ${entry.page} - DUPLICATE! x`);
         sheetPassed = false;
@@ -141,7 +140,7 @@ function verify(pageCount) {
     console.log('');
   }
 
-  // Verify all pages are present
+  // ====== Coverage Check ======
   console.log('--- Coverage Check ---');
   const missing = [];
   for (let p = 1; p <= pageCount; p++) {
@@ -157,10 +156,10 @@ function verify(pageCount) {
     console.log('All pages 1-' + pageCount + ' present v');
   }
   
-  // Verify page 1 is at correct position (sheet 1, side 1, bottom-right)
+  // ====== Position Check ======
+  // Page 1 is always on sheet 1, side 1, bottom-right (front cover)
   const sheet1Imp = computeImposition(1, pageCount);
   const page1Pos = sheet1Imp.side1[1][1];  // bottom-right
-  const pageNPos = sheet1Imp.side1[1][0];  // bottom-left
   
   if (page1Pos !== 1) {
     console.log(`ERROR: Page 1 should be at sheet 1 side 1 bottom-right, but found ${page1Pos}`);
@@ -169,11 +168,15 @@ function verify(pageCount) {
     console.log('Page 1 at correct position (sheet 1, side 1, bottom-right) v');
   }
   
+  // Page N is on the LAST sheet, side 1, bottom-left (back cover of innermost section)
+  const lastSheetImp = computeImposition(sheetCount, pageCount);
+  const pageNPos = lastSheetImp.side1[1][0];  // bottom-left of last sheet
+  
   if (pageNPos !== pageCount) {
-    console.log(`ERROR: Page ${pageCount} should be at sheet 1 side 1 bottom-left, but found ${pageNPos}`);
+    console.log(`ERROR: Page ${pageCount} should be at sheet ${sheetCount} side 1 bottom-left, but found ${pageNPos}`);
     allPassed = false;
   } else {
-    console.log(`Page ${pageCount} at correct position (sheet 1, side 1, bottom-left) v`);
+    console.log(`Page ${pageCount} at correct position (sheet ${sheetCount}, side 1, bottom-left) v`);
   }
   
   console.log('');
