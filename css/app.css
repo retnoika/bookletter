@@ -807,30 +807,21 @@ input {
   width: 100%;
 }
 
-/* ============ Editor Page ============ */
-#editorPage {
+/* ============ Shared Page Rendering ============ */
+/* These rules apply in ALL contexts: editor, thumbnails, sheet previews, print area */
+.pg {
   position: relative;
+  width: calc(var(--mm) * var(--pw, 148));
+  height: calc(var(--mm) * var(--ph, 210));
   background: var(--paper);
-  --mm: 2.952px;
-}
-
-#editorPage .pg {
-  position: absolute;
-  inset: 0;
   overflow: hidden;
 }
 
-#editorPage .layer {
+.layer {
   position: absolute;
-  cursor: move;
 }
 
-#editorPage .layer.sel {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-#editorPage .layer img {
+.layer img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -839,13 +830,13 @@ input {
   user-select: none;
 }
 
-#editorPage .layer svg {
+.layer svg {
   width: 100%;
   height: 100%;
   display: block;
 }
 
-#editorPage .layer .tx {
+.layer .tx {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -853,13 +844,13 @@ input {
   word-break: break-word;
 }
 
-#editorPage .layer .tx:empty::before {
+.layer .tx:empty::before {
   content: attr(data-ph);
   color: var(--muted);
   opacity: 0.6;
 }
 
-#editorPage .layer .ph {
+.layer .ph {
   width: 100%;
   height: 100%;
   border: 1px dashed var(--border);
@@ -871,16 +862,14 @@ input {
   color: var(--muted);
 }
 
-/* Safe margin guide */
-#editorPage .guide {
+/* Safe margin guide - shared */
+.guide {
   position: absolute;
-  border: 1px dashed var(--accent);
-  opacity: 0.4;
   pointer-events: none;
 }
 
-/* Page number */
-#editorPage .pn {
+/* Page number - shared */
+.pn {
   position: absolute;
   bottom: calc(var(--mm) * 3.2);
   left: 50%;
@@ -889,6 +878,26 @@ input {
   color: var(--ink);
   opacity: 0.6;
   pointer-events: none;
+}
+
+/* ============ Editor Page (decoration only) ============ */
+#editorPage {
+  position: relative;
+  background: var(--paper);
+}
+
+#editorPage .layer {
+  cursor: move;
+}
+
+#editorPage .layer.sel {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+#editorPage .guide {
+  border: 1px dashed var(--accent);
+  opacity: 0.4;
 }
 
 /* ============ Layer Handles ============ */

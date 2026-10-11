@@ -716,7 +716,7 @@
   var BASE_SCALE = 2.4;
 
   function fitEditor() {
-    var canvas = document.querySelector('.canvas');
+    var canvas = document.querySelector('.canvas-wrap');
     var editorPage = document.getElementById('editorPage');
     if (!canvas || !editorPage) return;
     
