@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bookletter</title>
+  <link rel="stylesheet" href="css/app.css">
+  <style id="pageStyle"></style>
+</head>
+<body>
+  <div id="app">
+    <!-- Top bar -->
+    <header class="top">
+      <div class="brand">Bookletter</div>
+      
+      <div class="group">
+        <input type="text" id="titleInput" value="untitled booklet" aria-label="Booklet title">
+      </div>
+      
+      <div class="group">
+        <span class="cap">Pages</span>
+        <div class="seg" id="segOrient">
+          <button data-v="portrait">Portrait A5</button>
+          <button data-v="landscape">Landscape A5</button>
+        </div>
+      </div>
+      
+      <div class="group">
+        <button class="chip" id="tGuide">Margin guide</button>
+        <button class="chip" id="tNums">Page numbers</button>
+      </div>
+      
+      <div class="spacer"></div>
+      
+      <div class="group">
+        <span id="saved"></span>
+        <button class="btn" id="bFill">Fill from images…</button>
+        <button class="btn" id="bOpen">Open</button>
+        <button class="btn" id="bSave">Save</button>
+        <button class="btn" id="bNew">New booklet</button>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <div class="wrap">
+      <!-- Page strip -->
+      <div class="strip" id="strip" aria-label="Booklet pages"></div>
+
+      <!-- Workspace -->
+      <div class="work">
+        <!-- Tools panel -->
+        <aside class="tools">
+          <div>
+            <h2 id="toolHead">Page 1</h2>
+            <p class="hint" id="toolSub">Front cover</p>
+          </div>
+          
+          <div>
+            <h3>Layout</h3>
+            <div class="layouts" id="layouts"></div>
+          </div>
+          
+          <div>
+            <h3>Add layer</h3>
+            <div class="add-btns">
+              <button class="btn" id="bAddPhoto">Photo</button>
+              <button class="btn" id="bAddText">Text</button>
+              <button class="btn" id="bAddShape">Shape</button>
+            </div>
+          </div>
+          
+          <div>
+            <h3>Background</h3>
+            <div class="sw" id="swatches"></div>
+          </div>
+          
+          <div>
+            <h3>Selected layer</h3>
+            <div id="inspector"></div>
+          </div>
+        </aside>
+
+        <!-- Canvas -->
+        <div class="canvas">
+          <div class="zoom-ctrl">
+            <button id="zoomOut" aria-label="Zoom out">−</button>
+            <button id="zoomFit">Fit</button>
+            <button id="zoomIn" aria-label="Zoom in">+</button>
+          </div>
+          <div id="editorPage"></div>
+          <div class="pagecap" id="pageCap">Page 1 of 8 · A5 148 × 210 mm</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file inputs -->
+  <input type="file" id="filePhoto" accept="image/*" class="hidden-input">
+  <input type="file" id="fileMany" accept="image/*" multiple class="hidden-input">
+  <input type="file" id="fileJson" accept="application/json,.json,.bookletter.json" class="hidden-input">
+
+  <!-- Toast notifications -->
+  <div id="toast" role="status"></div>
+
+  <!-- Scripts (classic, no modules for file:// support) -->
+  <script src="js/00-state.js"></script>
+  <script src="js/10-templates.js"></script>
+  <script src="js/20-render.js"></script>
+  <script src="js/30-editor.js"></script>
+  <script src="js/40-persist.js"></script>
+  <script src="js/90-boot.js"></script>
+</body>
+</html>
