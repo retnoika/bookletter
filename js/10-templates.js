@@ -86,7 +86,18 @@
   BL.TEMPLATE_ORDER = TEMPLATE_ORDER;
 
   // ============ Apply template ============
-  // Adds layers on top of existing ones (non-destructive)
+  // Replaces empty scaffolding (photo without src, text without content)
+  // but keeps layers the user has already filled in or created.
+  function isEmptyScaffolding(layer) {
+    if (layer.kind === 'photo') {
+      return !layer.src;
+    } else if (layer.kind === 'text') {
+      return !layer.text || layer.text.trim() === '';
+    }
+    // Shape layers are user artwork, never scaffolding
+    return false;
+  }
+
   function applyTemplate(templateId, pageIdx) {
     var tpl = TEMPLATES[templateId];
     if (!tpl) return [];
@@ -101,9 +112,19 @@
     var areaW = tpl.bleed ? pw : innerW;
     var areaH = tpl.bleed ? ph : innerH;
 
-    var addedIds = [];
     var page = BL.S.pages[pageIdx];
 
+    // Remove empty scaffolding layers, keep user content
+    var kept = [];
+    for (var k = 0; k < page.layers.length; k++) {
+      if (!isEmptyScaffolding(page.layers[k])) {
+        kept.push(page.layers[k]);
+      }
+    }
+    page.layers = kept;
+
+    // Add new template slots
+    var addedIds = [];
     for (var i = 0; i < tpl.slots.length; i++) {
       var slot = tpl.slots[i];
       var r = slot.rect;
