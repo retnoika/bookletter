@@ -188,6 +188,8 @@
     renderTools();
     renderEditor();
     BL.renderInspector();
+    if (BL.renderSheets) BL.renderSheets();
+    if (BL.updateSteps) BL.updateSteps();
   }
 
   BL.renderAll = renderAll;
@@ -352,6 +354,7 @@
       setupTools();
       BL.setupEditor();
       if (BL.setupGestures) BL.setupGestures();
+      if (BL.setupSheets) BL.setupSheets();
       BL.setupPersist();
       renderAll();
     });

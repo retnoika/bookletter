@@ -814,3 +814,194 @@ input {
     padding: 12px;
   }
 }
+
+/* ============ Print sheets section ============ */
+.sheetsec {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+  margin-top: 20px;
+}
+
+.sheetsec h2 {
+  margin: 0 0 4px;
+  font: 700 20px var(--f-disp);
+}
+
+.sub {
+  margin: 0 0 16px;
+  color: var(--muted);
+  max-width: 70ch;
+}
+
+.sheets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  --mm: 1.2px;
+}
+
+.sheets figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.sheets figcaption {
+  font-weight: 600;
+}
+
+.sheets figcaption small {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.sheet {
+  position: relative;
+  background: #fff;
+  flex: none;
+  overflow: hidden;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
+  width: calc(var(--mm) * var(--sw));
+  height: calc(var(--mm) * var(--sh));
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cell {
+  position: absolute;
+  overflow: hidden;
+  width: calc(var(--mm) * var(--pw));
+  height: calc(var(--mm) * var(--ph));
+}
+
+.cell.rot {
+  transform: rotate(180deg);
+}
+
+/* Page number tag (preview only) */
+.tag {
+  position: absolute;
+  z-index: 5;
+  background: var(--ink);
+  color: #fff;
+  font: 600 12px var(--f-ui);
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin: 4px;
+}
+
+/* Fold lines (preview only) */
+.foldline {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border: 0 dashed var(--leaf);
+}
+
+.foldline.h {
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top-width: 2px;
+}
+
+.foldline.v {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left-width: 2px;
+}
+
+/* Crop and fold marks */
+.mk {
+  position: absolute;
+  background: #000;
+}
+
+.mk.fold {
+  background: #888;
+}
+
+/* Folding steps */
+.steps {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.steps li {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.steps b {
+  display: block;
+  font: 700 15px var(--f-disp);
+  margin-bottom: 3px;
+}
+
+.note {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Primary button */
+.btn.primary {
+  background: var(--leaf);
+  color: #fff;
+}
+
+.btn.primary:hover {
+  background: var(--leaf-d);
+}
+
+/* ============ Print area (hidden, built on print) ============ */
+#printArea {
+  display: none;
+}
+
+/* ============ Print styles ============ */
+@media print {
+  html, body {
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+  
+  #app, #toast {
+    display: none !important;
+  }
+  
+  #printArea {
+    display: block;
+    --mm: 1mm;
+  }
+  
+  #printArea .sheet {
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+  }
+  
+  #printArea .sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  
+  /* Hide fold lines and tags in print */
+  #printArea .foldline,
+  #printArea .tag {
+    display: none !important;
+  }
+}
