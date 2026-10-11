@@ -69,7 +69,7 @@
     if (!container) return;
     
     container.innerHTML = '';
-    container.appendChild(BL.renderPage(BL.cur, { edit: true, sel: BL.sel }));
+    container.appendChild(BL.renderPage(BL.cur, { edit: true, sel: BL.sel, nums: BL.S.nums }));
     BL.fitEditor();
   }
 

@@ -623,11 +623,17 @@
 
   // ============ Keyboard shortcuts ============
   function handleKeydown(e) {
+    // Guard against non-element targets (e.g. document)
+    var target = e.target;
+    if (!target || typeof target.closest !== 'function') {
+      return;
+    }
+    
     // Don't intercept when editing text
-    if (e.target.closest('.tx') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    if (target.closest('.tx') || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
       // Still handle Escape for text
-      if (e.key === 'Escape' && e.target.closest('.tx')) {
-        e.target.blur();
+      if (e.key === 'Escape' && target.closest('.tx')) {
+        target.blur();
         e.preventDefault();
       }
       return;
