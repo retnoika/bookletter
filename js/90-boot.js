@@ -190,6 +190,7 @@
     BL.renderInspector();
     if (BL.renderSheets) BL.renderSheets();
     if (BL.updateSteps) BL.updateSteps();
+    if (BL.renderSafetyPanel) BL.renderSafetyPanel();
   }
 
   BL.renderAll = renderAll;
@@ -356,6 +357,7 @@
       if (BL.setupGestures) BL.setupGestures();
       if (BL.setupSheets) BL.setupSheets();
       BL.setupPersist();
+      if (BL.setupExport) BL.setupExport();
       renderAll();
     });
   }

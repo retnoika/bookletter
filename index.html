@@ -54,6 +54,7 @@
         <button class="btn" id="bOpen">Open</button>
         <button class="btn" id="bSave">Save</button>
         <button class="btn" id="bNew">New booklet</button>
+        <button class="btn" id="bExport">Export PNG</button>
         <button class="btn primary" id="bPrint">Print / Save PDF</button>
       </div>
     </header>
@@ -94,6 +95,11 @@
           <div>
             <h3>Selected layer</h3>
             <div id="inspector"></div>
+          </div>
+          
+          <div>
+            <h3>Print safety</h3>
+            <div id="safetyPanel" class="safety-panel"></div>
           </div>
         </aside>
 
@@ -149,6 +155,7 @@
   <script src="js/35-gestures.js"></script>
   <script src="js/40-persist.js"></script>
   <script src="js/50-sheets.js"></script>
+  <script src="js/60-export.js"></script>
   <script src="js/90-boot.js"></script>
 </body>
 </html>
