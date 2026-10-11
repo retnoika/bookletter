@@ -330,6 +330,30 @@
 
   BL.renderSwatches = renderSwatches;
 
+  // ============ Render imposition diagram ============
+  // Shows 2x2 grid of side 1 panel numbers for the active sheet
+  function renderImpositionDiagram(container, sheetIdx) {
+    if (!container) return;
+    
+    // Get imposition from the single source of truth (js/imposition.js)
+    var imp = BL.computeImposition(sheetIdx, BL.S.pages.length);
+    var side1 = imp.side1;
+    var rotatedRow = imp.rotatedRow;
+    
+    // Build 2x2 grid: top row then bottom row, left to right
+    var html = '';
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 2; c++) {
+        var pageNum = side1[r][c];
+        var isRotated = r === rotatedRow;
+        html += '<div class="cell' + (isRotated ? ' rot' : '') + '">' + pageNum + '</div>';
+      }
+    }
+    container.innerHTML = html;
+  }
+  
+  BL.renderImpositionDiagram = renderImpositionDiagram;
+
   // ============ Render print plan ============
   function renderPrintPlan() {
     var sheetCount = BL.S.pages.length / 8;
