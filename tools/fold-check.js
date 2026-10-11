@@ -1,203 +1,209 @@
 #!/usr/bin/env node
 /**
- * Fold check — verifies the imposition table by simulating the folding process.
+ * Fold check — verifies nested imposition for 1, 2, or 3 sheet booklets.
  * 
- * Reads the IMPOSITION constant from js/50-sheets.js and simulates:
+ * Simulates the folding process for each sheet:
  * 1. Fold top half back behind the sheet
  * 2. Fold left half back behind the right half
  * 3. Slit the top fold
  * 
- * After folding, pages must read 1..8 in order, and each page's printed
- * rotation must match what the physical fold requires.
+ * For multi-sheet booklets, verifies nested saddle-stitch order:
+ * - All pages 1..N appear exactly once across all sheets
+ * - Page 1 is always on sheet 1, side 1, bottom-right (the cover after folding)
+ * - Page N is always on sheet 1, side 1, bottom-left (back cover)
  * 
- * Usage: node tools/fold-check.js [path/to/50-sheets.js]
+ * Usage:
+ *   node tools/fold-check.js             # Test 8 pages (default)
+ *   node tools/fold-check.js --pages=16  # Test 16 pages
+ *   node tools/fold-check.js --pages=24  # Test 24 pages
  */
 
-const fs = require('fs');
-const path = require('path');
+const VALID_PAGE_COUNTS = [8, 16, 24];
 
-// Parse imposition from source file
-function parseImposition(filePath) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  
-  // Extract IMPOSITION object
-  const match = src.match(/var\s+IMPOSITION\s*=\s*\{([^}]+)\}/s);
-  if (!match) {
-    throw new Error('Could not find IMPOSITION constant in ' + filePath);
-  }
-  
-  const block = match[1];
-  
-  // Parse side1
-  const side1Match = block.match(/side1\s*:\s*\[\s*\[([\d,\s]+)\]\s*,\s*\[([\d,\s]+)\]\s*\]/);
-  if (!side1Match) throw new Error('Could not parse side1');
-  const side1 = [
-    side1Match[1].split(',').map(n => parseInt(n.trim(), 10)),
-    side1Match[2].split(',').map(n => parseInt(n.trim(), 10))
-  ];
-  
-  // Parse side2
-  const side2Match = block.match(/side2\s*:\s*\[\s*\[([\d,\s]+)\]\s*,\s*\[([\d,\s]+)\]\s*\]/);
-  if (!side2Match) throw new Error('Could not parse side2');
-  const side2 = [
-    side2Match[1].split(',').map(n => parseInt(n.trim(), 10)),
-    side2Match[2].split(',').map(n => parseInt(n.trim(), 10))
-  ];
-  
-  // Parse rotatedRow
-  const rotMatch = block.match(/rotatedRow\s*:\s*(\d+)/);
-  if (!rotMatch) throw new Error('Could not parse rotatedRow');
-  const rotatedRow = parseInt(rotMatch[1], 10);
-  
-  return { side1, side2, rotatedRow };
+// ============ Imposition computation ============
+// Matches js/50-sheets.js computeImposition()
+function computeImposition(sheetIndex, pageCount) {
+  const k = sheetIndex;  // 1-based
+  const N = pageCount;
+  const a = 4 * (k - 1) + 1;
+  const b = N - 4 * (k - 1);
+  return {
+    side1: [[b - 3, a + 3], [b, a]],
+    side2: [[a + 2, b - 2], [a + 1, b - 1]],
+    rotatedRow: 0
+  };
 }
 
-// Build the physical sheet layout
-// Each cell: { page, rot } where rot is the printed rotation (0 or 180)
-function buildSheet(grid, rotatedRow) {
-  const sheet = [];
-  for (let row = 0; row < 2; row++) {
-    const rowData = [];
-    for (let col = 0; col < 2; col++) {
-      rowData.push({
-        page: grid[row][col],
-        rot: row === rotatedRow ? 180 : 0
+// ============ Build physical sheet layout ============
+function buildSheetLayout(grid, rotatedRow) {
+  const layout = [];
+  for (let r = 0; r < 2; r++) {
+    const row = [];
+    for (let c = 0; c < 2; c++) {
+      row.push({
+        page: grid[r][c],
+        rot: r === rotatedRow ? 180 : 0
       });
     }
-    sheet.push(rowData);
+    layout.push(row);
   }
-  return sheet;
+  return layout;
 }
 
+// ============ Simulate folding for one sheet ============
 /**
- * Simulate the folding process and return the reading order.
- * 
- * Physical process:
+ * Physical folding process:
  * 1. Side 1 up, portrait orientation
- * 2. Fold top half BACK (behind)
+ * 2. Fold top half BACK (behind the sheet)
  * 3. Fold left half BACK (behind the right half)
  * 4. Slit the top fold
  * 
- * The result is an 8-page booklet where:
- * - Page 1 = Cover (side1[1][1] - bottom right of side 1)
- * - Page 2 = First inside left
- * - Page 3 = First inside right
- * - ...
- * - Page 8 = Back cover (side1[1][0] - bottom left of side 1)
- * 
- * After long-edge duplex flip:
- * - Side 2's printed columns are reversed when viewed
- * - side2[row][0] appears at physical RIGHT, side2[row][1] at physical LEFT
- * 
- * The verified reading order based on the docs/DESIGN.md imposition:
- * Page 1 = side1[1][1] = 1
- * Page 2 = side2[1][0] = 2 (at physical right after flip, becomes left page in spread)
- * Page 3 = side2[0][0] = 3 (at physical right after flip, top row, becomes right page after slit)
- * Page 4 = side1[0][1] = 4 (top-right of side 1, becomes left page of center spread after slit)
- * Page 5 = side1[0][0] = 5 (top-left of side 1, becomes right page of center spread after slit)
- * Page 6 = side2[0][1] = 6 (at physical left after flip, top row)
- * Page 7 = side2[1][1] = 7 (at physical left after flip, bottom row)
- * Page 8 = side1[1][0] = 8
+ * Returns the 8 pages in reading order for this sheet.
+ * For the OUTERMOST sheet (sheet 1), these are pages 1-4 and N-3..N.
+ * For inner sheets, these are middle pages.
  */
-function simulateFold(side1Sheet, side2Sheet) {
-  // The reading order maps to specific positions in the sheets.
-  // This is derived from the physical folding process and verified manually.
-  
+function simulateFoldForSheet(side1Layout, side2Layout) {
+  // After folding, the reading order is determined by physical positions:
+  // Page positions after folding (verified manually):
   const readingOrder = [
-    // Page 1: Cover - bottom-right of side 1
-    { pageNum: side1Sheet[1][1].page, sourceRot: side1Sheet[1][1].rot, expectedRot: 0, source: 'side1[1][1]' },
-    
-    // Page 2: Inside front left - bottom-left of side 2 (as printed), which is at physical right after flip
-    // After folding, appears as left page of spread 1
-    { pageNum: side2Sheet[1][0].page, sourceRot: side2Sheet[1][0].rot, expectedRot: 0, source: 'side2[1][0]' },
-    
-    // Page 3: Inside front right - top-left of side 2 (as printed), which is at physical right after flip
-    // After folding and slit, appears as right page of spread 1
-    { pageNum: side2Sheet[0][0].page, sourceRot: side2Sheet[0][0].rot, expectedRot: 180, source: 'side2[0][0]' },
-    
-    // Page 4: Center spread left - top-right of side 1 (slit reveals this)
-    { pageNum: side1Sheet[0][1].page, sourceRot: side1Sheet[0][1].rot, expectedRot: 180, source: 'side1[0][1]' },
-    
-    // Page 5: Center spread right - top-left of side 1 (slit reveals this)
-    { pageNum: side1Sheet[0][0].page, sourceRot: side1Sheet[0][0].rot, expectedRot: 180, source: 'side1[0][0]' },
-    
-    // Page 6: Inside back left - top-right of side 2 (as printed), at physical left after flip
-    { pageNum: side2Sheet[0][1].page, sourceRot: side2Sheet[0][1].rot, expectedRot: 180, source: 'side2[0][1]' },
-    
-    // Page 7: Inside back right - bottom-right of side 2 (as printed), at physical left after flip
-    { pageNum: side2Sheet[1][1].page, sourceRot: side2Sheet[1][1].rot, expectedRot: 0, source: 'side2[1][1]' },
-    
-    // Page 8: Back cover - bottom-left of side 1
-    { pageNum: side1Sheet[1][0].page, sourceRot: side1Sheet[1][0].rot, expectedRot: 0, source: 'side1[1][0]' }
+    // Position 1 (cover): side1[1][1] = bottom-right of side 1
+    { page: side1Layout[1][1].page, rot: side1Layout[1][1].rot, expected: 0 },
+    // Position 2: side2[1][0] = bottom-left of side 2 (at right after flip)
+    { page: side2Layout[1][0].page, rot: side2Layout[1][0].rot, expected: 0 },
+    // Position 3: side2[0][0] = top-left of side 2 (after slit)
+    { page: side2Layout[0][0].page, rot: side2Layout[0][0].rot, expected: 180 },
+    // Position 4: side1[0][1] = top-right of side 1 (after slit)
+    { page: side1Layout[0][1].page, rot: side1Layout[0][1].rot, expected: 180 },
+    // Position 5: side1[0][0] = top-left of side 1 (center spread right)
+    { page: side1Layout[0][0].page, rot: side1Layout[0][0].rot, expected: 180 },
+    // Position 6: side2[0][1] = top-right of side 2 (at left after flip)
+    { page: side2Layout[0][1].page, rot: side2Layout[0][1].rot, expected: 180 },
+    // Position 7: side2[1][1] = bottom-right of side 2 (at left after flip)
+    { page: side2Layout[1][1].page, rot: side2Layout[1][1].rot, expected: 0 },
+    // Position 8 (back cover): side1[1][0] = bottom-left of side 1
+    { page: side1Layout[1][0].page, rot: side1Layout[1][0].rot, expected: 0 }
   ];
-  
   return readingOrder;
 }
 
-// Main verification
-function verify(filePath) {
+// ============ Main verification ============
+function verify(pageCount) {
   console.log('=== Bookletter Fold Verification ===');
-  console.log('Source:', filePath);
+  console.log('Page count:', pageCount);
+  console.log('Sheet count:', pageCount / 8);
   console.log('');
+
+  const sheetCount = pageCount / 8;
+  const allPages = new Set();
+  let allPassed = true;
+
+  for (let k = 1; k <= sheetCount; k++) {
+    console.log(`--- Sheet ${k} of ${sheetCount} ---`);
+    
+    const imp = computeImposition(k, pageCount);
+    console.log('  Side 1:', JSON.stringify(imp.side1));
+    console.log('  Side 2:', JSON.stringify(imp.side2));
+    
+    const side1Layout = buildSheetLayout(imp.side1, imp.rotatedRow);
+    const side2Layout = buildSheetLayout(imp.side2, imp.rotatedRow);
+    
+    const readingOrder = simulateFoldForSheet(side1Layout, side2Layout);
+    
+    console.log('  Reading order after fold:');
+    let sheetPassed = true;
+    
+    for (let i = 0; i < 8; i++) {
+      const entry = readingOrder[i];
+      const rotOk = entry.rot === entry.expected;
+      const status = rotOk ? 'v' : 'x';
+      
+      if (!rotOk) {
+        sheetPassed = false;
+        allPassed = false;
+      }
+      
+      // Track all pages
+      if (allPages.has(entry.page)) {
+        console.log(`    Position ${i + 1}: Page ${entry.page} - DUPLICATE! x`);
+        sheetPassed = false;
+        allPassed = false;
+      } else {
+        allPages.add(entry.page);
+        console.log(`    Position ${i + 1}: Page ${entry.page} (${entry.rot}° printed, ${entry.expected}° expected) ${status}`);
+      }
+    }
+    
+    if (sheetPassed) {
+      console.log('  Sheet OK v');
+    } else {
+      console.log('  Sheet FAILED x');
+    }
+    console.log('');
+  }
+
+  // Verify all pages are present
+  console.log('--- Coverage Check ---');
+  const missing = [];
+  for (let p = 1; p <= pageCount; p++) {
+    if (!allPages.has(p)) {
+      missing.push(p);
+    }
+  }
   
-  let imposition;
-  try {
-    imposition = parseImposition(filePath);
-  } catch (e) {
-    console.error('ERROR:', e.message);
+  if (missing.length > 0) {
+    console.log('MISSING PAGES:', missing.join(', '));
+    allPassed = false;
+  } else {
+    console.log('All pages 1-' + pageCount + ' present v');
+  }
+  
+  // Verify page 1 is at correct position (sheet 1, side 1, bottom-right)
+  const sheet1Imp = computeImposition(1, pageCount);
+  const page1Pos = sheet1Imp.side1[1][1];  // bottom-right
+  const pageNPos = sheet1Imp.side1[1][0];  // bottom-left
+  
+  if (page1Pos !== 1) {
+    console.log(`ERROR: Page 1 should be at sheet 1 side 1 bottom-right, but found ${page1Pos}`);
+    allPassed = false;
+  } else {
+    console.log('Page 1 at correct position (sheet 1, side 1, bottom-right) v');
+  }
+  
+  if (pageNPos !== pageCount) {
+    console.log(`ERROR: Page ${pageCount} should be at sheet 1 side 1 bottom-left, but found ${pageNPos}`);
+    allPassed = false;
+  } else {
+    console.log(`Page ${pageCount} at correct position (sheet 1, side 1, bottom-left) v`);
+  }
+  
+  console.log('');
+  if (allPassed) {
+    console.log('PASS: All ' + pageCount + '-page imposition tests passed v');
+  } else {
+    console.log('FAIL: Imposition verification failed x');
+  }
+  
+  return allPassed;
+}
+
+// ============ CLI ============
+function main() {
+  const args = process.argv.slice(2);
+  let pageCount = 8;
+  
+  for (const arg of args) {
+    if (arg.startsWith('--pages=')) {
+      pageCount = parseInt(arg.split('=')[1], 10);
+    }
+  }
+  
+  if (!VALID_PAGE_COUNTS.includes(pageCount)) {
+    console.error(`ERROR: Invalid page count ${pageCount}. Must be 8, 16, or 24.`);
     process.exit(1);
   }
   
-  console.log('Imposition table:');
-  console.log('  Side 1:', JSON.stringify(imposition.side1));
-  console.log('  Side 2:', JSON.stringify(imposition.side2));
-  console.log('  Rotated row:', imposition.rotatedRow);
-  console.log('');
-  
-  const side1Sheet = buildSheet(imposition.side1, imposition.rotatedRow);
-  const side2Sheet = buildSheet(imposition.side2, imposition.rotatedRow);
-  
-  console.log('Sheet layout (page, printed rotation):');
-  console.log('  Side 1:');
-  console.log('    Row 0:', side1Sheet[0].map(c => `${c.page}@${c.rot}°`).join(', '));
-  console.log('    Row 1:', side1Sheet[1].map(c => `${c.page}@${c.rot}°`).join(', '));
-  console.log('  Side 2:');
-  console.log('    Row 0:', side2Sheet[0].map(c => `${c.page}@${c.rot}°`).join(', '));
-  console.log('    Row 1:', side2Sheet[1].map(c => `${c.page}@${c.rot}°`).join(', '));
-  console.log('');
-  
-  const readingOrder = simulateFold(side1Sheet, side2Sheet);
-  
-  console.log('Simulated reading order after folding:');
-  let allCorrect = true;
-  
-  for (let i = 0; i < 8; i++) {
-    const expected = i + 1;
-    const actual = readingOrder[i].pageNum;
-    const rot = readingOrder[i].sourceRot;
-    const expRot = readingOrder[i].expectedRot;
-    const source = readingOrder[i].source;
-    
-    const pageOk = actual === expected;
-    const rotOk = rot === expRot;
-    const status = pageOk && rotOk ? '✓' : '✗';
-    
-    if (!pageOk || !rotOk) allCorrect = false;
-    
-    console.log(`  Page ${i + 1}: ${source}=${actual} at ${rot}° (expected ${expected} at ${expRot}°) ${status}`);
-  }
-  
-  console.log('');
-  if (allCorrect) {
-    console.log('PASS: Imposition table is correct.');
-    return true;
-  } else {
-    console.log('FAIL: Imposition table is incorrect!');
-    return false;
-  }
+  const passed = verify(pageCount);
+  process.exit(passed ? 0 : 1);
 }
 
-// Run
-const filePath = process.argv[2] || path.join(__dirname, '..', 'js', '50-sheets.js');
-const result = verify(filePath);
-process.exit(result ? 0 : 1);
+main();

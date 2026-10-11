@@ -154,6 +154,19 @@
   BL.updateSavedStatus = updateSavedStatus;
 
   // ============ Load saved state ============
+  // Helper: check if page count is valid
+  function isValidPageCount(len) {
+    return BL.VALID_PAGE_COUNTS.indexOf(len) !== -1;
+  }
+
+  // Helper: migrate old projects (add pageCount field if missing)
+  function migrateProject(data) {
+    if (data && data.pages && !data.pageCount) {
+      data.pageCount = data.pages.length;
+    }
+    return data;
+  }
+
   function loadSaved() {
     return new Promise(function(resolve) {
       checkIDBAvailability().then(function(avail) {
@@ -161,29 +174,29 @@
         
         if (avail) {
           idbGet().then(function(data) {
-            if (data && data.pages && data.pages.length === 8) {
-              resolve(data);
+            if (data && data.pages && isValidPageCount(data.pages.length)) {
+              resolve(migrateProject(data));
             } else {
               // Try localStorage
               var lsData = lsGet();
-              if (lsData && lsData.pages && lsData.pages.length === 8) {
-                resolve(lsData);
+              if (lsData && lsData.pages && isValidPageCount(lsData.pages.length)) {
+                resolve(migrateProject(lsData));
               } else {
                 resolve(null);
               }
             }
           }).catch(function() {
             var lsData = lsGet();
-            if (lsData && lsData.pages && lsData.pages.length === 8) {
-              resolve(lsData);
+            if (lsData && lsData.pages && isValidPageCount(lsData.pages.length)) {
+              resolve(migrateProject(lsData));
             } else {
               resolve(null);
             }
           });
         } else {
           var lsData = lsGet();
-          if (lsData && lsData.pages && lsData.pages.length === 8) {
-            resolve(lsData);
+          if (lsData && lsData.pages && isValidPageCount(lsData.pages.length)) {
+            resolve(migrateProject(lsData));
           } else {
             resolve(null);
           }
@@ -224,8 +237,12 @@
     if (!data || typeof data !== 'object') {
       return 'Invalid file format';
     }
-    if (!Array.isArray(data.pages) || data.pages.length !== 8) {
-      return 'Not a Bookletter project: must have exactly 8 pages';
+    if (!Array.isArray(data.pages) || !isValidPageCount(data.pages.length)) {
+      return 'Not a Bookletter project: must have 8, 16, or 24 pages';
+    }
+    // Migrate: add pageCount if missing
+    if (!data.pageCount) {
+      data.pageCount = data.pages.length;
     }
     // Check each page has layers array
     for (var i = 0; i < data.pages.length; i++) {

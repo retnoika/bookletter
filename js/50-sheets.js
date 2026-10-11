@@ -1,22 +1,39 @@
 /**
  * Bookletter — imposition and print engine
- * 8-page A5 booklet on one A3/SRA3 sheet, both sides, fold twice.
+ * 8/16/24-page A5 booklet on 1-3 A3/SRA3 sheets, both sides, fold twice.
  * All geometry in millimetres.
  */
 (function() {
   'use strict';
   var BL = window.BL;
 
-  // ============ Verified Imposition (do not modify) ============
-  // This table is verified and tested. See docs/DESIGN.md.
-  // Page numbers (1-based) at each cell; row 0 (top) rotated 180°.
-  var IMPOSITION = {
-    side1: [[5, 4], [8, 1]],  // Front: top row rotated
-    side2: [[3, 6], [2, 7]],  // Back: top row rotated
-    rotatedRow: 0
-  };
+  // ============ Nested Imposition Computation ============
+  // For sheet k (1-based) with N total pages:
+  // a = 4(k-1) + 1, b = N - 4(k-1)
+  // Side 1: [[b-3, a+3], [b, a]]  (top-left, top-right; bottom-left, bottom-right)
+  // Side 2: [[a+2, b-2], [a+1, b-1]]
+  // Top row (row 0) is always rotated 180°.
+  function computeImposition(sheetIndex, pageCount) {
+    var k = sheetIndex;  // 1-based
+    var N = pageCount;
+    var a = 4 * (k - 1) + 1;
+    var b = N - 4 * (k - 1);
+    return {
+      side1: [[b - 3, a + 3], [b, a]],
+      side2: [[a + 2, b - 2], [a + 1, b - 1]],
+      rotatedRow: 0
+    };
+  }
+  BL.computeImposition = computeImposition;
 
-  BL.IMPOSITION = IMPOSITION;
+  // Legacy: BL.IMPOSITION for backward compatibility (sheet 1, 8 pages)
+  // Computed on demand to reflect current state
+  Object.defineProperty(BL, 'IMPOSITION', {
+    get: function() {
+      return computeImposition(1, BL.S.pages.length);
+    }
+  });
+
 
   // ============ Bleed state ============
   var bleed = 0;  // 0 or 3 mm
@@ -49,7 +66,7 @@
   // ============ Build a sheet element ============
   function buildSheet(side, opts) {
     opts = opts || {};
-    var grid = side === 1 ? IMPOSITION.side1 : IMPOSITION.side2;
+    var grid = side === 1 ? BL.IMPOSITION.side1 : BL.IMPOSITION.side2;
     var dims = BL.pageDims();
     var sheet = BL.sheetDims();
     var pw = dims[0], ph = dims[1];
@@ -71,7 +88,7 @@
       for (var c = 0; c < 2; c++) {
         var pageNum = grid[r][c];
         var pageIdx = pageNum - 1;
-        var rotated = r === IMPOSITION.rotatedRow;
+        var rotated = r === BL.IMPOSITION.rotatedRow;
 
         var cell = BL.el('div', 'cell' + (rotated ? ' rot' : ''));
         cell.style.left = 'calc(var(--mm) * ' + (ox + c * pw) + ')';

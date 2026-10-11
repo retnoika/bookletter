@@ -14,10 +14,16 @@
 
   BL.SHEETS = { A3: SHEET_A3, SRA3: SHEET_SRA3 };
 
-  // Page labels for the strip
-  BL.PAGE_LABELS = [
-    '1 · Front cover', '2', '3', '4', '5', '6', '7', '8 · Back cover'
-  ];
+  // Dynamic page label computation
+  function computePageLabel(idx, total) {
+    if (idx === 0) return '1 · Front cover';
+    if (idx === total - 1) return total + ' · Back cover';
+    return String(idx + 1);
+  }
+  BL.computePageLabel = computePageLabel;
+
+  // Valid page counts (8, 16, or 24)
+  BL.VALID_PAGE_COUNTS = [8, 16, 24];
 
   // ============ ID generator ============
   var layerCounter = 0;
@@ -97,9 +103,13 @@
   BL.newPage = newPage;
 
   // ============ Default state ============
-  function defaultState() {
+  function defaultState(pageCount) {
+    pageCount = pageCount || 8;
+    if (BL.VALID_PAGE_COUNTS.indexOf(pageCount) === -1) {
+      pageCount = 8;
+    }
     var pages = [];
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < pageCount; i++) {
       pages.push(newPage());
     }
     return {
@@ -110,6 +120,7 @@
       guide: true,
       safe: 8,
       nums: false,
+      pageCount: pageCount,
       pages: pages
     };
   }
