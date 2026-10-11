@@ -49,7 +49,28 @@ Print your finished design on A3 paper, both sides:
 2. **Margins**: None
 3. **Background graphics**: On
 
+The app prints exactly two pages — side 1 and side 2. Browser printing rounds the page box to whole pixels, so it can land within about 0.2 mm of the true sheet size; the content itself is placed in exact millimetres.
+
 Do a test print on plain paper first with page numbers enabled.
+
+## Exporting for a print shop
+
+Use the **PNG 1** and **PNG 2** buttons to export each sheet side as a 300 dpi image file:
+
+- A3 (297 × 420 mm) → 3508 × 4961 pixels
+- SRA3 (320 × 450 mm) → 3780 × 5315 pixels
+
+When SRA3 stock is selected, the PNGs include crop marks at the corners and fold marks at the midpoints.
+
+## Checking your pages
+
+The **Print safety** panel in the editor checks your design for common print problems:
+
+- Layers that cross the safe margin (reports how far, in mm)
+- Photos placed larger than their resolution allows (reports effective dpi)
+- Shape strokes thinner than 0.25 mm
+
+When everything is fine, the panel says "No print-safety issues found."
 
 ## Folding
 

@@ -368,40 +368,27 @@
     ctx.fillRect((x1 + g) * pxPerMm, (my - t / 2) * pxPerMm, len * pxPerMm, t * pxPerMm);
   }
 
-  // ============ Export PNG ============
-  function exportPNG() {
+  // ============ Export single sheet PNG ============
+  function exportSheet(side) {
     var dims = exportDims();
     var title = sanitizeFilename(BL.S.title || 'booklet');
+    var filename = title + '-sheet' + side + '.png';
 
-    BL.toast('Exporting PNGs...');
+    BL.toast('Exporting ' + filename + '...');
 
     // Collect and preload all images first
     var srcs = collectImageSrcs();
     preloadImages(srcs).then(function(imageCache) {
-      // Create canvases
-      var canvas1 = document.createElement('canvas');
-      var canvas2 = document.createElement('canvas');
-      canvas1.width = dims.width;
-      canvas1.height = dims.height;
-      canvas2.width = dims.width;
-      canvas2.height = dims.height;
+      var canvas = document.createElement('canvas');
+      canvas.width = dims.width;
+      canvas.height = dims.height;
+      var ctx = canvas.getContext('2d');
 
-      var ctx1 = canvas1.getContext('2d');
-      var ctx2 = canvas2.getContext('2d');
+      drawSheet(ctx, side, PX_PER_MM, imageCache);
 
-      // Draw both sheets (now synchronous)
-      drawSheet(ctx1, 1, PX_PER_MM, imageCache);
-      drawSheet(ctx2, 2, PX_PER_MM, imageCache);
-
-      // Download sheet 1
-      canvas1.toBlob(function(blob) {
-        downloadBlob(blob, title + '-sheet1.png');
-
-        // Download sheet 2
-        canvas2.toBlob(function(blob2) {
-          downloadBlob(blob2, title + '-sheet2.png');
-          BL.toast('Exported ' + title + '-sheet1.png and ' + title + '-sheet2.png');
-        }, 'image/png');
+      canvas.toBlob(function(blob) {
+        downloadBlob(blob, filename);
+        BL.toast('Saved ' + filename);
       }, 'image/png');
     });
   }
@@ -418,7 +405,10 @@
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Revoke after delay to ensure download completes
+    setTimeout(function() {
+      URL.revokeObjectURL(url);
+    }, 1500);
   }
 
   // ============ Safety checks ============
@@ -594,10 +584,15 @@
 
   // ============ Setup ============
   function setupExport() {
-    // Export button
-    var bExport = document.getElementById('bExport');
-    if (bExport) {
-      bExport.addEventListener('click', exportPNG);
+    // Export segment buttons
+    var segExport = document.getElementById('segExport');
+    if (segExport) {
+      segExport.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn || !btn.dataset.side) return;
+        var side = parseInt(btn.dataset.side, 10);
+        exportSheet(side);
+      });
     }
 
     // Initial safety check render
@@ -605,7 +600,7 @@
   }
 
   // ============ Expose ============
-  BL.exportPNG = exportPNG;
+  BL.exportSheet = exportSheet;
   BL.exportDims = exportDims;
   BL.drawSheet = drawSheet;
   BL.preloadImages = preloadImages;
