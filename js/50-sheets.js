@@ -26,7 +26,7 @@
 
   // ============ Check if bleed is allowed ============
   function canBleed() {
-    // A3 has only ~0.25mm spare per side, no room for bleed
+    // A3 has only ~0.5mm spare per side (1mm total), no room for bleed
     return BL.S.sheet === 'SRA3';
   }
   BL.canBleed = canBleed;
@@ -333,7 +333,7 @@
         var val = parseInt(btn.dataset.v, 10);
         
         if (val > 0 && !canBleed()) {
-          BL.toast('Bleed requires SRA3 stock. A3 has only ~0.25mm spare per side.');
+          BL.toast('Bleed requires SRA3 stock. A3 has only 0.5mm spare per side.');
           return;
         }
 

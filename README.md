@@ -41,11 +41,13 @@ Click a layer to select it and see its controls in the inspector panel.
 
 Print your finished design on A3 paper, both sides:
 
-1. **Paper size**: A3 (297 × 420 mm)
-2. **Duplex**: Both sides, **flip on the long edge**
-3. **Scale**: 100%, no page scaling
-4. **Margins**: None
-5. **Background graphics**: On
+**Portrait A5 pages** → print on A3 portrait (297 × 420 mm), duplex flip on the **long edge**
+
+**Landscape A5 pages** → print on A3 landscape (420 × 297 mm), duplex flip on the **short edge**
+
+1. **Scale**: 100%, no page scaling
+2. **Margins**: None
+3. **Background graphics**: On
 
 Do a test print on plain paper first with page numbers enabled.
 

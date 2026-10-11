@@ -124,31 +124,36 @@ Each cell is the page size. Top-row cells rotate 180° about their center.
 
 ---
 
-## Step 1 Scope
+## Measured Print Facts
 
-Implemented:
-- Top bar with title, orientation toggle, margin guide toggle, page numbers toggle
-- Page strip with 8 live thumbnails
-- Canvas with zoom controls and page info
-- Layout templates (8 types, additive application)
-- Layers: photo, text, shape with full inspector controls
-- Inline text editing with double-click
-- Photo loading via file picker and drag-drop
-- Bulk fill from images
-- Background color with presets and custom picker
-- Keyboard shortcuts (delete, escape, arrows, undo/redo, duplicate, save)
-- Undo/redo (40-entry snapshot stack)
-- Autosave (IndexedDB → localStorage fallback)
-- Project save/open (.bookletter.json)
+Printing via the browser produces a 2-page PDF where each page corresponds to one side of the printed sheet. The PDF page box lands within about 0.2mm of the true sheet size because browsers round `@page` millimetres to whole CSS pixels; the content itself is placed in exact mm using CSS calc.
 
-Deferred to later steps:
-- Pointer dragging/resizing/rotating of layers
-- Snapping and alignment guides
-- Two-finger/pinch gestures
-- Pan-inside-frame for photos
-- Imposition/sheets section
-- Print CSS
-- SRA3 crop/fold marks
-- Bleed
-- PNG/PDF export
-- DPI/safe-margin print warnings
+**A3 (297 × 420 mm)**: No crop or fold marks. The 2×2 page block fits with only 0.5mm spare per side horizontally (1mm total) and 0mm vertically.
+
+**SRA3 (320 × 450 mm)**: 8 crop-mark lines (2 per corner) and 4 fold-mark lines (one at each edge midpoint). Room for 3mm bleed when enabled.
+
+---
+
+## Current Status
+
+**Implemented:**
+- Editor with photo, text, and shape layers
+- 8 layout templates (additive application to current page)
+- Direct manipulation: move, resize, rotate layers with mouse or touch
+- Snapping to margins, centers, and other layer edges
+- Photo pan inside frame (Alt+drag or inspector toggle)
+- Two-finger pinch to scale on touch devices
+- Undo/redo (40-entry stack)
+- Keyboard shortcuts (delete, nudge, duplicate, save)
+- Autosave (IndexedDB with localStorage fallback)
+- Project save/open (.bookletter.json files)
+- Imposition preview with live sheet thumbnails
+- Print path: `@page` sized dynamically to sheet, 2-page output
+- A3 and SRA3 sheet stock selection
+- Crop and fold marks on SRA3
+- Bleed (0mm or 3mm) on SRA3; refused on A3
+- Fold instructions adapted to current stock and orientation
+
+**Not yet implemented:**
+- 300 DPI PNG export per sheet
+- Print-safety warnings for safe-margin crossings and low-resolution photos
