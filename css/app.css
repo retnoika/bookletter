@@ -251,7 +251,7 @@ input {
   font-size: 11px;
   font-weight: 500;
   padding: 10px 14px;
-  border: var(--border-w) solid var(--line);
+  border: var(--border-w) solid var(--line-strong);
   background: var(--surface);
   color: var(--ink);
   min-height: 44px;
@@ -304,7 +304,7 @@ input {
   font-weight: 500;
   letter-spacing: 0.05em;
   padding: 6px 10px;
-  border: var(--border-w) solid var(--line);
+  border: var(--border-w) solid var(--line-strong);
   background: var(--surface);
   color: var(--ink-muted);
   min-height: 32px;
@@ -326,7 +326,7 @@ input {
 /* ============ Segmented Controls ============ */
 .seg {
   display: inline-flex;
-  border: var(--border-w) solid var(--line);
+  border: var(--border-w) solid var(--line-strong);
   overflow: hidden;
 }
 
@@ -336,7 +336,7 @@ input {
   font-weight: 500;
   background: var(--surface);
   color: var(--ink-muted);
-  border-right: var(--border-w) solid var(--line);
+  border-right: var(--border-w) solid var(--line-strong);
   min-height: 36px;
 }
 

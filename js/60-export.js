@@ -560,9 +560,14 @@
     var findings = runSafetyChecks();
 
     if (findings.length === 0) {
+      panel.classList.remove('has-issues');
+      panel.classList.add('no-issues');
       panel.innerHTML = '<span class="check-ok">✓ No print-safety issues found</span>';
       return;
     }
+
+    panel.classList.remove('no-issues');
+    panel.classList.add('has-issues');
 
     var html = '<ul class="check-list">';
     findings.forEach(function(f) {
