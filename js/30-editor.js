@@ -278,7 +278,17 @@
         html += '<button data-act="fit" data-v="contain" aria-pressed="' + (layer.fit === 'contain') + '">Fit</button>';
         html += '</div></div>';
         html += '<button class="btn ghost" data-act="clearimg">Remove image</button>';
-        html += '<p class="hint">' + (layer.fit === 'cover' ? 'Drag the image to reposition it (coming soon).' : 'Fit shows the whole image with margins.') + '</p>';
+        if (layer.fit === 'cover') {
+          var panMode = BL.photoPanMode ? BL.photoPanMode() : false;
+          html += '<div class="insp-row" style="margin-top:8px"><span>Pan image</span>';
+          html += '<div class="seg2">';
+          html += '<button data-act="panmode" data-v="false" aria-pressed="' + (!panMode) + '">Off</button>';
+          html += '<button data-act="panmode" data-v="true" aria-pressed="' + (panMode) + '">On</button>';
+          html += '</div></div>';
+          html += '<p class="hint">Alt+drag or enable Pan to reposition the image inside the frame.</p>';
+        } else {
+          html += '<p class="hint">Fit shows the whole image with margins.</p>';
+        }
       } else {
         html += '<p class="hint">You can also drop an image file onto the layer.</p>';
       }
@@ -363,6 +373,10 @@
       layer.bold = val === 'true';
     } else if (act === 'shape') {
       layer.shape = val;
+    } else if (act === 'panmode') {
+      if (BL.setPhotoPanMode) BL.setPhotoPanMode(val === 'true');
+      BL.renderInspector();
+      return;
     } else if (act === 'duplicate') {
       duplicateLayer();
       return;

@@ -344,6 +344,7 @@
       setupTopBar();
       setupTools();
       BL.setupEditor();
+      if (BL.setupGestures) BL.setupGestures();
       BL.setupPersist();
       renderAll();
     });

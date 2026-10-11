@@ -670,6 +670,113 @@ input {
   pointer-events: none;
 }
 
+/* ============ Layer handles ============ */
+.layer-handles {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border: 2px solid var(--leaf);
+  border-radius: 2px;
+  pointer-events: auto;
+  /* 44px touch hit area */
+  box-sizing: content-box;
+  padding: 17px;
+  margin: -17px;
+}
+
+.handle:hover {
+  background: var(--sun);
+}
+
+/* Corner handles */
+.resize-handle.nw { left: -5px; top: -5px; }
+.resize-handle.ne { right: -5px; top: -5px; }
+.resize-handle.sw { left: -5px; bottom: -5px; }
+.resize-handle.se { right: -5px; bottom: -5px; }
+
+/* Edge handles */
+.resize-handle.n { left: 50%; top: -5px; transform: translateX(-50%); }
+.resize-handle.s { left: 50%; bottom: -5px; transform: translateX(-50%); }
+.resize-handle.e { right: -5px; top: 50%; transform: translateY(-50%); }
+.resize-handle.w { left: -5px; top: 50%; transform: translateY(-50%); }
+
+/* Rotate handle */
+.rotate-handle {
+  left: 50%;
+  top: -30px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--sun);
+  border-color: var(--ink);
+}
+
+.rotate-line {
+  position: absolute;
+  left: 50%;
+  top: -20px;
+  width: 2px;
+  height: 20px;
+  background: var(--leaf);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* ============ Snap guides ============ */
+.snap-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.snap-guide {
+  position: absolute;
+  background: var(--sun);
+}
+
+.snap-guide.snap-v {
+  width: 1px;
+  top: 0;
+  bottom: 0;
+}
+
+.snap-guide.snap-h {
+  height: 1px;
+  left: 0;
+  right: 0;
+}
+
+/* ============ Layer cursors ============ */
+.pg.edit .layer {
+  cursor: move;
+}
+
+.pg.edit .layer .ph {
+  cursor: pointer;
+}
+
+.pg.edit .layer .tx {
+  cursor: text;
+}
+
+/* ============ Snap toggle ============ */
+#snapToggle {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+#snapToggle[aria-pressed="false"] {
+  opacity: 0.5;
+}
+
+
 /* ============ Responsive ============ */
 @media (max-width: 900px) {
   .work {
