@@ -237,7 +237,7 @@
 
   // ============ Update handles position during drag ============
   function updateHandlesPosition(layer) {
-    var handles = document.querySelector('.layer-handles');
+    var handles = document.querySelector('#editorPage .layer-handles');
     if (!handles) return;
     
     var mm = getMm();
@@ -254,7 +254,7 @@
 
   // ============ Update layer element position (cheap update during drag) ============
   function updateLayerPosition(layer) {
-    var layerEl = document.querySelector('.layer[data-id="' + layer.id + '"]');
+    var layerEl = document.querySelector('#editorPage .layer[data-id="' + layer.id + '"]');
     if (!layerEl) return;
     
     var mm = getMm();
@@ -283,7 +283,7 @@
   }
 
   function updatePhotoPan(layer) {
-    var layerEl = document.querySelector('.layer[data-id="' + layer.id + '"]');
+    var layerEl = document.querySelector('#editorPage .layer[data-id="' + layer.id + '"]');
     if (!layerEl) return;
     var img = layerEl.querySelector('img');
     if (img) {
@@ -313,7 +313,7 @@
     
     // For rotate, compute center in screen coords
     if (type === 'rotate') {
-      var handles = document.querySelector('.layer-handles');
+      var handles = document.querySelector('#editorPage .layer-handles');
       if (handles) {
         var rect = handles.getBoundingClientRect();
         gesture.centerX = rect.left + rect.width / 2;
@@ -837,12 +837,5 @@
   }
 
   BL.setupGestures = setupGestures;
-
-  // ============ Extend renderEditor to add handles ============
-  var originalRenderEditor = BL.renderEditor;
-  BL.renderEditor = function() {
-    originalRenderEditor();
-    renderHandles();
-  };
 
 })();

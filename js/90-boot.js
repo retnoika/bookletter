@@ -68,9 +68,16 @@
     var container = document.getElementById('editorPage');
     if (!container) return;
     
+    // Remove existing handles before clearing (they're inside the container)
+    var oldHandles = container.querySelector('.layer-handles');
+    if (oldHandles) oldHandles.remove();
+    
     container.innerHTML = '';
     container.appendChild(BL.renderPage(BL.cur, { edit: true, sel: BL.sel, nums: BL.S.nums }));
     BL.fitEditor();
+    
+    // Render handles for selected layer
+    if (BL.renderHandles) BL.renderHandles();
   }
 
   BL.renderEditor = renderEditor;
