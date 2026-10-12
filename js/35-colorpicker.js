@@ -404,7 +404,8 @@
 
     ring.addEventListener('pointerdown', function(e) {
       e.preventDefault();
-      ring.setPointerCapture(e.pointerId);
+      hexInput.blur(); // Allow hex field to update
+      try { ring.setPointerCapture(e.pointerId); } catch (err) { /* synthetic event */ }
       isDraggingRing = true;
       onRingPointer(e);
     });
@@ -448,7 +449,8 @@
 
     square.addEventListener('pointerdown', function(e) {
       e.preventDefault();
-      square.setPointerCapture(e.pointerId);
+      hexInput.blur(); // Allow hex field to update
+      try { square.setPointerCapture(e.pointerId); } catch (err) { /* synthetic event */ }
       isDraggingSquare = true;
       onSquarePointer(e);
     });
