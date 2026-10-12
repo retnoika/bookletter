@@ -48,6 +48,7 @@
   var currentBri = 50;      // 0-100 (brightness/value in HSB)
   var isDraggingRing = false;
   var isDraggingSquare = false;
+  var triggerAnchor = null;  // Element that opened the picker, for focus return
 
   // ============ Color conversion (HSB/HSV model) ============
   function hexToRgb(hex) {
@@ -634,27 +635,42 @@
       sw.classList.toggle('active', sw.dataset.hex.toUpperCase() === upperColor);
     }
 
-    // Position and show
+    // Store anchor selector for focus return (element may be re-rendered)
+    if (options.anchor) {
+      var a = options.anchor;
+      if (a.id) {
+        triggerAnchor = '#' + a.id;
+      } else if (a.dataset && a.dataset.c) {
+        triggerAnchor = '#swatches button[data-c="' + a.dataset.c + '"]';
+      } else {
+        triggerAnchor = null;
+      }
+    } else {
+      triggerAnchor = null;
+    }
     pickerEl.classList.add('open');
     positionPicker(options.anchor);
-
-    // Focus hex input
-    setTimeout(function() {
-      var hexInput = document.getElementById('cpHex');
-      if (hexInput) {
-        hexInput.focus();
-        hexInput.select();
-      }
-    }, 50);
+    // No autofocus - let user tap to focus (avoids iOS keyboard popup)
   }
 
   function closePicker() {
     if (pickerEl) {
       pickerEl.classList.remove('open');
     }
+    // Return focus to trigger element after click event stack clears
+    var selector = triggerAnchor;
+    if (selector) {
+      setTimeout(function() {
+        var el = document.querySelector(selector);
+        if (el && typeof el.focus === 'function') {
+          el.focus();
+        }
+      }, 0);
+    }
     currentCallback = null;
     isDraggingRing = false;
     isDraggingSquare = false;
+    triggerAnchor = null;
   }
 
   function isPickerOpen() {
