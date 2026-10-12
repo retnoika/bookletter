@@ -11,6 +11,7 @@
     BL.sel = id;
     updateSelectionUI();
     updateLayersPanelSelection();
+    if (BL.renderHandles) BL.renderHandles();
     BL.renderInspector();
   }
 
@@ -18,6 +19,7 @@
     BL.sel = null;
     updateSelectionUI();
     updateLayersPanelSelection();
+    if (BL.renderHandles) BL.renderHandles();
     BL.renderInspector();
   }
 

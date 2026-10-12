@@ -187,6 +187,9 @@
     } else {
       renderPageView(stage, container);
     }
+    
+    // Re-render handles after editor content is replaced
+    if (BL.renderHandles) BL.renderHandles();
   }
 
   function renderPageView(stage, container) {
@@ -835,6 +838,8 @@
         }
         renderTools();
         renderEditor();
+        if (BL.renderLayersPanel) BL.renderLayersPanel();
+        if (BL.renderHandles) BL.renderHandles();
         BL.renderInspector();
         renderStrip();
         BL.save();
@@ -900,6 +905,7 @@
         BL.S.pages[BL.cur].layers = [];
         BL.sel = null;
         renderEditor();
+        if (BL.renderLayersPanel) BL.renderLayersPanel();
         BL.renderInspector();
         renderStrip();
         BL.save();
