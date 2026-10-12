@@ -12,6 +12,7 @@ Download this folder and open `index.html` directly in your browser. No internet
 
 ## Support my work
 Thank you for supporting my work on Bookletter. 
+
 <a href="https://www.buymeacoffee.com/retnoika"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a matcha latte&emoji=🍵&slug=retnoika&button_colour=de505b&font_colour=ffffff&font_family=Poppins&outline_colour=ffffff&coffee_colour=FFDD00" /></a>
 
 ## Designing your booklet
