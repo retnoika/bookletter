@@ -10,12 +10,14 @@
   function selectLayer(id) {
     BL.sel = id;
     updateSelectionUI();
+    updateLayersPanelSelection();
     BL.renderInspector();
   }
 
   function deselect() {
     BL.sel = null;
     updateSelectionUI();
+    updateLayersPanelSelection();
     BL.renderInspector();
   }
 
@@ -30,6 +32,378 @@
       }
     }
   }
+
+  // ============ Layers Panel ============
+  // Thumbnail cache: layerId -> data URL
+  var thumbCache = {};
+  
+  function updateLayersPanelSelection() {
+    var rows = document.querySelectorAll('.layer-row');
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      if (row.dataset.id === BL.sel) {
+        row.classList.add('selected');
+      } else {
+        row.classList.remove('selected');
+      }
+    }
+  }
+  
+  function getLayerName(layer, index) {
+    if (layer.kind === 'text') {
+      // Use first few words of text content
+      var text = (layer.text || '').trim();
+      if (text.length > 0) {
+        // Take first ~30 chars, cut at word boundary
+        if (text.length <= 30) return text;
+        var cut = text.substring(0, 30);
+        var space = cut.lastIndexOf(' ');
+        if (space > 15) cut = cut.substring(0, space);
+        return cut + '…';
+      }
+      return 'Text ' + (index + 1);
+    } else if (layer.kind === 'photo') {
+      if (layer.src) {
+        // Try to extract filename from data URL or blob URL
+        var name = layer.fileName;
+        if (name && name.length <= 24) {
+          // Remove extension
+          var dot = name.lastIndexOf('.');
+          if (dot > 0) name = name.substring(0, dot);
+          return name;
+        }
+      }
+      return 'Photo ' + (index + 1);
+    }
+    return 'Layer ' + (index + 1);
+  }
+  
+  function generateThumbnail(layer, callback) {
+    var cacheKey = layer.id + '_' + (layer.src || '') + '_' + (layer.color || '');
+    if (thumbCache[cacheKey]) {
+      callback(thumbCache[cacheKey]);
+      return;
+    }
+    
+    if (layer.kind === 'photo' && layer.src) {
+      // Create thumbnail from image
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        canvas.width = 80;
+        canvas.height = 104;
+        var ctx = canvas.getContext('2d');
+        
+        // Cover-fit the image
+        var iw = img.naturalWidth, ih = img.naturalHeight;
+        var scale = Math.max(80 / iw, 104 / ih);
+        var sw = iw * scale, sh = ih * scale;
+        var sx = (80 - sw) / 2, sy = (104 - sh) / 2;
+        ctx.drawImage(img, sx, sy, sw, sh);
+        
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        thumbCache[cacheKey] = dataUrl;
+        callback(dataUrl);
+      };
+      img.onerror = function() {
+        callback(null);
+      };
+      img.src = layer.src;
+    } else {
+      callback(null);
+    }
+  }
+  
+  function renderLayersPanel() {
+    var listEl = document.getElementById('layersList');
+    var orderEl = document.getElementById('layersOrder');
+    if (!listEl || !orderEl) return;
+    
+    var page = BL.S.pages[BL.cur];
+    if (!page) return;
+    
+    var layers = page.layers || [];
+    
+    // Empty state
+    if (layers.length === 0) {
+      listEl.innerHTML = '<div class="layers-empty">' +
+        '<div class="layers-empty-text">Nothing on this page yet</div>' +
+        '<div class="layers-empty-actions">' +
+        '<button data-add="photo">' + BL.icon('photo', {size: 16}) + ' Image</button>' +
+        '<button data-add="text">' + BL.icon('typography', {size: 16}) + ' Text</button>' +
+        '</div></div>';
+      orderEl.innerHTML = '';
+      return;
+    }
+    
+    // Render layers list (reversed: top = front of stack)
+    var html = '';
+    for (var i = layers.length - 1; i >= 0; i--) {
+      var layer = layers[i];
+      var name = getLayerName(layer, i);
+      var typeLabel = layer.kind === 'photo' ? 'Photo' : 'Text';
+      var selected = layer.id === BL.sel ? ' selected' : '';
+      
+      html += '<div class="layer-row' + selected + '" data-id="' + layer.id + '" data-index="' + i + '" tabindex="0">';
+      html += '<div class="layer-grip" data-grip="' + layer.id + '">' + BL.icon('grip-vertical', {size: 16}) + '</div>';
+      html += '<div class="layer-thumb" data-thumb="' + layer.id + '">';
+      
+      if (layer.kind === 'text') {
+        // Text thumbnail: "Aa" in layer's color and font
+        var color = layer.color || '#333';
+        var fontFamily = layer.font === 'heading' ? 'var(--f-disp)' : 'var(--f-ui)';
+        html += '<span class="layer-thumb-text" style="color:' + color + ';font-family:' + fontFamily + '">Aa</span>';
+      } else if (layer.kind === 'photo' && layer.src) {
+        html += '<img src="" alt="" data-load-thumb="' + layer.id + '">';
+      } else {
+        // Empty photo placeholder
+        html += BL.icon('photo', {size: 20});
+      }
+      
+      html += '</div>';
+      html += '<div class="layer-info">';
+      html += '<div class="layer-name">' + escapeHtml(name) + '</div>';
+      html += '<div class="layer-type">' + typeLabel + '</div>';
+      html += '</div>';
+      html += '</div>';
+    }
+    listEl.innerHTML = html;
+    
+    // Render order buttons
+    orderEl.innerHTML = 
+      '<button data-act="front" aria-label="Move to front" title="Move to front">' + BL.icon('chevrons-up', {size: 18}) + '</button>' +
+      '<button data-act="forward" aria-label="Bring forward" title="Bring forward">' + BL.icon('arrow-up', {size: 18}) + '</button>' +
+      '<button data-act="back" aria-label="Send backward" title="Send backward">' + BL.icon('arrow-down', {size: 18}) + '</button>' +
+      '<button data-act="bottom" aria-label="Send to back" title="Send to back">' + BL.icon('chevrons-down', {size: 18}) + '</button>';
+    
+    // Load photo thumbnails asynchronously
+    var thumbEls = listEl.querySelectorAll('[data-load-thumb]');
+    for (var j = 0; j < thumbEls.length; j++) {
+      (function(el) {
+        var layerId = el.dataset.loadThumb;
+        var layer = BL.findLayer(layerId);
+        if (layer) {
+          generateThumbnail(layer, function(dataUrl) {
+            if (dataUrl && el.parentNode) {
+              el.src = dataUrl;
+            }
+          });
+        }
+      })(thumbEls[j]);
+    }
+  }
+  
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  
+  // Drag reorder state
+  var dragState = null;
+  
+  function handleLayersPanelPointerDown(e) {
+    var grip = e.target.closest('[data-grip]');
+    if (grip) {
+      // Start drag from grip
+      e.preventDefault();
+      var row = grip.closest('.layer-row');
+      if (!row) return;
+      
+      dragState = {
+        id: row.dataset.id,
+        startY: e.clientY,
+        rowHeight: row.offsetHeight,
+        originalIndex: parseInt(row.dataset.index, 10),
+        moved: false,
+        undoPushed: false
+      };
+      row.classList.add('dragging');
+      row.setPointerCapture(e.pointerId);
+      return;
+    }
+    
+    // Click on row (not grip) to select
+    var row = e.target.closest('.layer-row');
+    if (row) {
+      selectLayer(row.dataset.id);
+    }
+    
+    // Empty state add buttons
+    var addBtn = e.target.closest('[data-add]');
+    if (addBtn) {
+      if (addBtn.dataset.add === 'photo') {
+        addPhotoLayer();
+      } else if (addBtn.dataset.add === 'text') {
+        addTextLayer();
+      }
+    }
+  }
+  
+  function handleLayersPanelPointerMove(e) {
+    if (!dragState) return;
+    
+    var listEl = document.getElementById('layersList');
+    if (!listEl) return;
+    
+    var rows = listEl.querySelectorAll('.layer-row');
+    var dragRow = listEl.querySelector('[data-id="' + dragState.id + '"]');
+    if (!dragRow) return;
+    
+    // Clear all drop indicators
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.remove('drag-over-top', 'drag-over-bottom');
+    }
+    
+    // Find target row
+    var rect = listEl.getBoundingClientRect();
+    var y = e.clientY - rect.top;
+    var targetRow = null;
+    var insertBefore = true;
+    
+    for (var j = 0; j < rows.length; j++) {
+      var rowRect = rows[j].getBoundingClientRect();
+      var rowMid = rowRect.top + rowRect.height / 2 - rect.top;
+      if (y < rowMid) {
+        targetRow = rows[j];
+        insertBefore = true;
+        break;
+      } else if (j === rows.length - 1) {
+        targetRow = rows[j];
+        insertBefore = false;
+      }
+    }
+    
+    if (targetRow && targetRow !== dragRow) {
+      dragState.moved = true;
+      if (insertBefore) {
+        targetRow.classList.add('drag-over-top');
+      } else {
+        targetRow.classList.add('drag-over-bottom');
+      }
+    }
+  }
+  
+  function handleLayersPanelPointerUp(e) {
+    if (!dragState) return;
+    
+    var listEl = document.getElementById('layersList');
+    if (!listEl) return;
+    
+    var dragRow = listEl.querySelector('[data-id="' + dragState.id + '"]');
+    if (dragRow) {
+      dragRow.classList.remove('dragging');
+      dragRow.releasePointerCapture(e.pointerId);
+    }
+    
+    // Clear all indicators
+    var rows = listEl.querySelectorAll('.layer-row');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.remove('drag-over-top', 'drag-over-bottom');
+    }
+    
+    if (!dragState.moved) {
+      dragState = null;
+      return;
+    }
+    
+    // Find target position
+    var rect = listEl.getBoundingClientRect();
+    var y = e.clientY - rect.top;
+    var targetIndex = -1;
+    
+    // List is reversed: visual top = array end (front)
+    for (var j = 0; j < rows.length; j++) {
+      if (rows[j].dataset.id === dragState.id) continue;
+      var rowRect = rows[j].getBoundingClientRect();
+      var rowMid = rowRect.top + rowRect.height / 2 - rect.top;
+      var rowIndex = parseInt(rows[j].dataset.index, 10);
+      
+      if (y < rowMid) {
+        // Insert after this row in array (since list is reversed)
+        targetIndex = rowIndex + 1;
+        break;
+      }
+    }
+    
+    // If didn't find target, insert at bottom (index 0)
+    if (targetIndex === -1) {
+      targetIndex = 0;
+    }
+    
+    var fromIndex = dragState.originalIndex;
+    
+    if (targetIndex !== fromIndex && targetIndex !== fromIndex + 1) {
+      // Push undo once per drag
+      BL.pushUndo();
+      
+      // Perform the move
+      var layers = BL.S.pages[BL.cur].layers;
+      var layer = layers.splice(fromIndex, 1)[0];
+      
+      // Adjust target if removing from before it
+      if (fromIndex < targetIndex) targetIndex--;
+      
+      layers.splice(targetIndex, 0, layer);
+      
+      BL.renderEditor();
+      renderLayersPanel();
+      BL.save();
+    }
+    
+    dragState = null;
+  }
+  
+  function handleLayersPanelKeyDown(e) {
+    var row = e.target.closest('.layer-row');
+    if (!row) return;
+    
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      selectLayer(row.dataset.id);
+    }
+  }
+  
+  function handleLayersOrderClick(e) {
+    var btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    
+    var layer = BL.findLayer(BL.sel);
+    if (!layer) return;
+    
+    var act = btn.dataset.act;
+    
+    if (act === 'front') {
+      moveLayerToFront();
+      renderLayersPanel();
+    } else if (act === 'forward') {
+      moveLayerForward();
+      renderLayersPanel();
+    } else if (act === 'back') {
+      moveLayerBack();
+      renderLayersPanel();
+    } else if (act === 'bottom') {
+      moveLayerToBottom();
+      renderLayersPanel();
+    }
+  }
+  
+  function setupLayersPanel() {
+    var panel = document.querySelector('.layers-panel');
+    if (!panel) return;
+    
+    panel.addEventListener('pointerdown', handleLayersPanelPointerDown);
+    panel.addEventListener('pointermove', handleLayersPanelPointerMove);
+    panel.addEventListener('pointerup', handleLayersPanelPointerUp);
+    panel.addEventListener('pointercancel', handleLayersPanelPointerUp);
+    panel.addEventListener('keydown', handleLayersPanelKeyDown);
+    
+    var orderEl = document.getElementById('layersOrder');
+    if (orderEl) {
+      orderEl.addEventListener('click', handleLayersOrderClick);
+    }
+  }
+  
+  BL.renderLayersPanel = renderLayersPanel;
+  BL.setupLayersPanel = setupLayersPanel;
 
   BL.selectLayer = selectLayer;
   BL.deselect = deselect;
@@ -101,9 +475,11 @@
     BL.pushUndo();
     readImage(file).then(function(dataUrl) {
       layer.src = dataUrl;
+      layer.fileName = file.name;
       layer.px = 50;
       layer.py = 50;
       BL.renderEditor();
+      renderLayersPanel();
       BL.renderInspector();
       BL.renderStrip();
       BL.save();
@@ -160,6 +536,7 @@
       
       readImage(list[idx]).then(function(dataUrl) {
         slot.layer.src = dataUrl;
+        slot.layer.fileName = list[idx].name;
         slot.layer.px = 50;
         slot.layer.py = 50;
         filled++;
@@ -192,10 +569,12 @@
           BL.pushUndo();
           readImage(file).then(function(dataUrl) {
             layer.src = dataUrl;
+            layer.fileName = file.name;
             layer.px = 50;
             layer.py = 50;
             BL.selectLayer(layer.id);
             BL.renderEditor();
+            renderLayersPanel();
             BL.renderInspector();
             BL.renderStrip();
             BL.save();
@@ -218,8 +597,10 @@
         
         readImage(imageFiles[0]).then(function(dataUrl) {
           newLayer.src = dataUrl;
+          newLayer.fileName = imageFiles[0].name;
           BL.selectLayer(newLayer.id);
           BL.renderEditor();
+          renderLayersPanel();
           BL.renderInspector();
           BL.renderStrip();
           BL.save();
@@ -290,16 +671,6 @@
     html += '<div class="insp-input-wrap"><input type="number" inputmode="decimal" data-prop="opacity" value="' + layer.opacity.toFixed(2) + '" step="0.05" min="0" max="1"></div></div>';
     html += '</div>';
     
-    html += '</div>';
-    
-    // ===== Layer order buttons with icons =====
-    html += '<div class="insp-section">';
-    html += '<div class="insp-order">';
-    html += '<button data-act="front" aria-label="Move to front" title="Move to front">' + BL.icon('chevrons-up', {size: 18}) + '</button>';
-    html += '<button data-act="forward" aria-label="Bring forward" title="Bring forward">' + BL.icon('arrow-up', {size: 18}) + '</button>';
-    html += '<button data-act="back" aria-label="Send backward" title="Send backward">' + BL.icon('arrow-down', {size: 18}) + '</button>';
-    html += '<button data-act="bottom" aria-label="Send to back" title="Send to back">' + BL.icon('chevrons-down', {size: 18}) + '</button>';
-    html += '</div>';
     html += '</div>';
     
     // ===== Kind-specific controls =====
@@ -483,6 +854,7 @@
     BL.S.pages[BL.cur].layers.splice(idx, 1);
     BL.sel = null;
     BL.renderEditor();
+    renderLayersPanel();
     BL.renderInspector();
     BL.renderStrip();
     BL.save();
@@ -500,6 +872,7 @@
     BL.S.pages[BL.cur].layers.push(copy);
     BL.sel = copy.id;
     BL.renderEditor();
+    renderLayersPanel();
     BL.renderInspector();
     BL.renderStrip();
     BL.save();
@@ -515,6 +888,7 @@
     var layer = layers.splice(idx, 1)[0];
     layers.push(layer);
     BL.renderEditor();
+    renderLayersPanel();
     BL.save();
   }
 
@@ -529,6 +903,7 @@
     layers[idx] = layers[idx + 1];
     layers[idx + 1] = tmp;
     BL.renderEditor();
+    renderLayersPanel();
     BL.save();
   }
 
@@ -542,6 +917,7 @@
     layers[idx] = layers[idx - 1];
     layers[idx - 1] = tmp;
     BL.renderEditor();
+    renderLayersPanel();
     BL.save();
   }
 
@@ -554,6 +930,7 @@
     var layer = layers.splice(idx, 1)[0];
     layers.unshift(layer);
     BL.renderEditor();
+    renderLayersPanel();
     BL.save();
   }
 
@@ -569,6 +946,7 @@
     BL.S.pages[BL.cur].layers.push(layer);
     BL.sel = layer.id;
     BL.renderEditor();
+    renderLayersPanel();
     BL.renderInspector();
     BL.renderStrip();
     BL.save();
@@ -582,6 +960,7 @@
     BL.S.pages[BL.cur].layers.push(layer);
     BL.sel = layer.id;
     BL.renderEditor();
+    renderLayersPanel();
     BL.renderInspector();
     BL.renderStrip();
     BL.save();
@@ -825,6 +1204,9 @@
       inspector.addEventListener('click', handleInspectorClick);
       inspector.addEventListener('input', handleInspectorInput);
     }
+    
+    // Layers panel
+    setupLayersPanel();
     
     // Global keyboard
     document.addEventListener('keydown', handleKeydown);

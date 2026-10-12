@@ -495,6 +495,7 @@
     renderPrintPlan();
     renderEditor();
     BL.renderInspector();
+    if (BL.renderLayersPanel) BL.renderLayersPanel();
     if (BL.renderSheets) BL.renderSheets();
     if (BL.updateSteps) BL.updateSteps();
     if (BL.renderSafetyPanel) BL.renderSafetyPanel();
