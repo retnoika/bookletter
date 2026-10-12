@@ -194,6 +194,11 @@
 
   function renderPageView(stage, container) {
     stage.classList.remove('spread-view');
+    
+    // Clean up any spread elements from spread view
+    var spreadEls = stage.querySelectorAll('.spread-partner, .spread-blank');
+    spreadEls.forEach(function(el) { el.remove(); });
+    
     container.innerHTML = '';
     container.appendChild(BL.renderPage(BL.cur, { edit: true }));
     BL.fitEditor();
@@ -202,55 +207,112 @@
   function renderSpreadView(stage, container) {
     stage.classList.add('spread-view');
     
-    var dims = BL.pageDims();
-    var pw = dims[0], ph = dims[1];
     var pageCount = BL.S.pages.length;
+    var spread = getSpreadInfo(BL.cur, pageCount);
     
-    var existing = stage.querySelectorAll('.spread-page');
+    // Remove any existing spread elements
+    var existing = stage.querySelectorAll('.spread-partner, .spread-blank');
     existing.forEach(function(el) { el.remove(); });
     
-    var spreads = getSpreadPages(BL.cur, pageCount);
-    
-    spreads.forEach(function(pageIdx, i) {
-      var page = document.createElement('div');
-      page.className = 'spread-page' + (pageIdx === BL.cur ? ' current' : '');
-      page.style.setProperty('--mm', '1.8px');
-      page.appendChild(BL.renderPage(pageIdx, {}));
-      page.addEventListener('click', function() {
-        BL.cur = pageIdx;
-        BL.sel = null;
-        renderAll();
-      });
-      
-      if (i === 0) {
-        stage.insertBefore(page, container);
+    // Render left side
+    var leftEl = null;
+    if (spread.leftPage !== null) {
+      if (spread.leftPage === BL.cur) {
+        // Current page is on the left - render in editorPage
+        leftEl = null;  // editorPage handles it
       } else {
-        stage.appendChild(page);
+        // Partner page on left
+        leftEl = createPartnerPage(spread.leftPage);
       }
-    });
+    } else {
+      // Blank placeholder on left (for front cover)
+      leftEl = createBlankPlaceholder();
+    }
     
+    // Render right side
+    var rightEl = null;
+    if (spread.rightPage !== null) {
+      if (spread.rightPage === BL.cur) {
+        // Current page is on the right - render in editorPage
+        rightEl = null;  // editorPage handles it
+      } else {
+        // Partner page on right
+        rightEl = createPartnerPage(spread.rightPage);
+      }
+    } else {
+      // Blank placeholder on right (for back cover)
+      rightEl = createBlankPlaceholder();
+    }
+    
+    // Insert left element before editorPage
+    if (leftEl) {
+      stage.insertBefore(leftEl, container);
+    }
+    
+    // Render current page in editorPage (editable)
     container.innerHTML = '';
     container.appendChild(BL.renderPage(BL.cur, { edit: true }));
-    BL.fitEditor();
+    
+    // Insert right element after editorPage
+    if (rightEl) {
+      // editorPage is already in stage; append after it
+      if (container.nextSibling) {
+        stage.insertBefore(rightEl, container.nextSibling);
+      } else {
+        stage.appendChild(rightEl);
+      }
+    }
+    
+    // Fit both pages with same scale
+    BL.fitEditorSpread();
   }
-
-  function getSpreadPages(curPage, total) {
-    // For spreads, show left and right pages
+  
+  function createPartnerPage(pageIdx) {
+    var el = document.createElement('div');
+    el.className = 'spread-partner';
+    el.dataset.page = pageIdx;
+    el.appendChild(BL.renderPage(pageIdx, { edit: false }));
+    el.addEventListener('click', function() {
+      BL.cur = pageIdx;
+      BL.sel = null;
+      renderAll();
+    });
+    return el;
+  }
+  
+  function createBlankPlaceholder() {
+    var el = document.createElement('div');
+    el.className = 'spread-blank';
+    return el;
+  }
+  
+  // Returns {leftPage, rightPage} where null means blank placeholder
+  // Book spread logic:
+  // - Page 1 (index 0): front cover, alone on right → {left: null, right: 0}
+  // - Pages 2-3 (indices 1-2): page 2 left, page 3 right → {left: 1, right: 2}
+  // - Pages 4-5 (indices 3-4): page 4 left, page 5 right → {left: 3, right: 4}
+  // - Last page (index N-1): back cover, alone on left → {left: N-1, right: null}
+  function getSpreadInfo(curPage, total) {
+    // Front cover: alone on right
     if (curPage === 0) {
-      // Front cover is alone on right
-      return [0];
+      return { leftPage: null, rightPage: 0 };
     }
+    // Back cover: alone on left
     if (curPage === total - 1) {
-      // Back cover is alone on left
-      return [total - 1];
+      return { leftPage: total - 1, rightPage: null };
     }
-    // Interior spreads
-    if (curPage % 2 === 1) {
-      // Odd page is on right, even page is on left
-      return [curPage - 1, curPage];
+    // Interior pages: even page numbers (odd indices) are verso (left),
+    // odd page numbers (even indices > 0) are recto (right)
+    // Page number = index + 1
+    var pageNum = curPage + 1;  // 1-based page number
+    if (pageNum % 2 === 0) {
+      // Even page number = verso (left page)
+      // Spread is [curPage, curPage + 1]
+      return { leftPage: curPage, rightPage: curPage + 1 };
     } else {
-      // Even page is on left, odd page is on right
-      return [curPage, curPage + 1];
+      // Odd page number = recto (right page)
+      // Spread is [curPage - 1, curPage]
+      return { leftPage: curPage - 1, rightPage: curPage };
     }
   }
 

@@ -1907,25 +1907,27 @@ input {
 .canvas-stage.spread-view {
   display: flex;
   gap: 4px;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-.canvas-stage.spread-view #editorPage {
-  pointer-events: none;
-  opacity: 0.7;
-}
-
-.canvas-stage.spread-view .spread-page {
+/* Partner page (read-only half of spread) */
+.canvas-stage.spread-view .spread-partner {
   cursor: pointer;
   transition: opacity 0.15s;
+  opacity: 0.85;
+  flex-shrink: 0;
 }
 
-.canvas-stage.spread-view .spread-page:hover {
+.canvas-stage.spread-view .spread-partner:hover {
   opacity: 1;
 }
 
-.canvas-stage.spread-view .spread-page.current {
-  opacity: 1;
-  outline: 2px solid var(--accent);
+/* Blank placeholder for cover spreads */
+.canvas-stage.spread-view .spread-blank {
+  background: var(--bg);
+  border: 1px dashed var(--line);
+  flex-shrink: 0;
 }
 
 /* ============ In-App Color Picker (Wheel) ============ */

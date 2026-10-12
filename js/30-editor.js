@@ -1118,6 +1118,12 @@
   var BASE_SCALE = 2.4;
 
   function fitEditor() {
+    // If in spread mode, delegate to fitEditorSpread
+    var stage = document.getElementById('canvasStage');
+    if (stage && stage.classList.contains('spread-view')) {
+      return fitEditorSpread();
+    }
+    
     var canvas = document.querySelector('.canvas-wrap');
     var editorPage = document.getElementById('editorPage');
     if (!canvas || !editorPage) return;
@@ -1145,6 +1151,94 @@
     
     return mm;
   }
+
+  // Fit editor for spread view (two pages side by side)
+  function fitEditorSpread() {
+    var canvas = document.querySelector('.canvas-wrap');
+    var stage = document.getElementById('canvasStage');
+    var editorPage = document.getElementById('editorPage');
+    if (!canvas || !stage || !editorPage) return;
+    
+    var dims = BL.pageDims();
+    var pw = dims[0], ph = dims[1];
+    var spreadWidth = pw * 2 + 4;  // Two pages + gap (in mm)
+    var availW = canvas.clientWidth - 40 || 600;
+    var availH = window.innerHeight - 280;
+    
+    var fitMm = Math.min(availW / spreadWidth, availH / ph, 3.4);
+    var mm;
+    
+    if (zoomLevel === 0) {
+      mm = Math.max(0.8, fitMm);
+    } else {
+      mm = Math.max(0.6, fitMm * Math.pow(1.3, zoomLevel));
+    }
+    
+    // Apply same scale to all spread elements
+    editorPage.style.setProperty('--mm', mm + 'px');
+    
+    var partners = stage.querySelectorAll('.spread-partner');
+    partners.forEach(function(p) {
+      p.style.setProperty('--mm', mm + 'px');
+    });
+    
+    // Set blank placeholder size to match page
+    var blanks = stage.querySelectorAll('.spread-blank');
+    blanks.forEach(function(b) {
+      b.style.width = (pw * mm) + 'px';
+      b.style.height = (ph * mm) + 'px';
+    });
+    
+    // Update caption for spread
+    updateSpreadCaption(mm);
+    
+    return mm;
+  }
+  
+  function updateSpreadCaption(mm) {
+    var cap = document.getElementById('pageCap');
+    if (!cap) return;
+    
+    var dims = BL.pageDims();
+    var pw = dims[0], ph = dims[1];
+    var total = BL.S.pages.length;
+    var cur = BL.cur;
+    
+    // Get spread info
+    var spread = getSpreadInfoForCaption(cur, total);
+    var text;
+    
+    if (spread.leftPage === null) {
+      // Front cover alone
+      text = 'Page 1 of ' + total;
+    } else if (spread.rightPage === null) {
+      // Back cover alone
+      text = 'Page ' + total + ' of ' + total;
+    } else {
+      // Interior spread
+      text = 'Pages ' + (spread.leftPage + 1) + '–' + (spread.rightPage + 1) + ' of ' + total;
+    }
+    
+    cap.textContent = text + ' · A5 · ' + pw + ' × ' + ph + ' mm';
+  }
+  
+  // Duplicate of getSpreadInfo for caption (avoid circular dependency)
+  function getSpreadInfoForCaption(curPage, total) {
+    if (curPage === 0) {
+      return { leftPage: null, rightPage: 0 };
+    }
+    if (curPage === total - 1) {
+      return { leftPage: total - 1, rightPage: null };
+    }
+    var pageNum = curPage + 1;
+    if (pageNum % 2 === 0) {
+      return { leftPage: curPage, rightPage: curPage + 1 };
+    } else {
+      return { leftPage: curPage - 1, rightPage: curPage };
+    }
+  }
+  
+  BL.fitEditorSpread = fitEditorSpread;
 
   function zoomIn() {
     if (zoomLevel < 2) {
