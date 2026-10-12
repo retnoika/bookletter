@@ -1471,3 +1471,193 @@ input {
   opacity: 1;
   outline: 2px solid var(--accent);
 }
+
+/* ============ In-App Color Picker ============ */
+/* Replaces native <input type="color"> for iOS Safari compatibility */
+.color-picker {
+  position: fixed;
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 12px;
+  min-width: 220px;
+  max-width: 280px;
+  display: none;
+}
+
+.color-picker.open {
+  display: block;
+}
+
+.cp-header {
+  margin-bottom: 8px;
+}
+
+/* Swatch grid: 5 columns */
+.cp-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.cp-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+
+.cp-swatch:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.cp-swatch.active::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.cp-swatch.dark.active::after {
+  color: var(--a0);
+}
+
+/* HSL Sliders */
+.cp-sliders {
+  margin-bottom: 12px;
+}
+
+.cp-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cp-slider-row .micro-label {
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.cp-range {
+  flex: 1;
+  height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Hue slider - rainbow gradient */
+.cp-hue {
+  --track-bg: linear-gradient(to right, 
+    hsl(0, 100%, 50%), 
+    hsl(60, 100%, 50%), 
+    hsl(120, 100%, 50%), 
+    hsl(180, 100%, 50%), 
+    hsl(240, 100%, 50%), 
+    hsl(300, 100%, 50%), 
+    hsl(360, 100%, 50%));
+}
+
+.cp-sat, .cp-lit {
+  --track-bg: linear-gradient(to right, #888, #f00);
+}
+
+.cp-range::-webkit-slider-runnable-track {
+  height: 12px;
+  background: var(--track-bg);
+  border: 1px solid var(--line);
+}
+
+.cp-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 24px;
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  margin-top: -7px;
+  cursor: grab;
+}
+
+.cp-range::-moz-range-track {
+  height: 12px;
+  background: var(--track-bg);
+  border: 1px solid var(--line);
+}
+
+.cp-range::-moz-range-thumb {
+  width: 12px;
+  height: 20px;
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  cursor: grab;
+}
+
+/* Preview and hex input row */
+.cp-preview-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: stretch;
+}
+
+.cp-preview {
+  width: 48px;
+  height: 36px;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.cp-hex {
+  flex: 1;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.cp-hex:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* Actions */
+.cp-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cp-actions .btn {
+  min-width: 70px;
+}
+
+/* Inspector color button (replaces native input) */
+.insp-color-btn {
+  width: 32px;
+  height: 24px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.insp-color-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

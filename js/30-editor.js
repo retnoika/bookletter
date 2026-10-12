@@ -313,7 +313,7 @@
       html += '<button data-act="bold" data-v="false" aria-pressed="' + (!layer.bold) + '">Regular</button>';
       html += '<button data-act="bold" data-v="true" aria-pressed="' + (layer.bold) + '">Bold</button>';
       html += '</div></div>';
-      html += '<div class="insp-row"><span>Color</span><input type="color" data-prop="color" value="' + layer.color + '"></div>';
+      html += '<div class="insp-row"><span>Color</span><button type="button" class="insp-color-btn" data-act="color" style="background:' + layer.color + '" title="' + layer.color + '"></button></div>';
       html += '<div class="insp-row"><span>Line height</span><input type="number" data-prop="line" value="' + layer.line.toFixed(2) + '" step="0.1" min="0.8" max="3"></div>';
       html += '</div>';
     }
@@ -355,6 +355,21 @@
       layer.align = val;
     } else if (act === 'bold') {
       layer.bold = val === 'true';
+    } else if (act === 'color') {
+      // Open in-app color picker for text color
+      BL.openColorPicker({
+        anchor: btn,
+        color: layer.color || '#000000',
+        onApply: function(hex) {
+          BL.pushUndo();
+          layer.color = hex;
+          BL.renderEditor();
+          BL.renderInspector();
+          BL.renderStrip();
+          BL.save();
+        }
+      });
+      return;
     } else if (act === 'panmode') {
       if (BL.setPhotoPanMode) BL.setPhotoPanMode(val === 'true');
       BL.renderInspector();

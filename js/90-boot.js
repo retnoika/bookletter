@@ -848,12 +848,19 @@
         if (!btn) return;
         
         if (btn.dataset.c === 'custom') {
-          var customBg = document.getElementById('customBg');
-          if (customBg) {
-            customBg.value = BL.S.pages[BL.cur].bg || '#ffffff';
-            // showPicker() is more reliable across browsers; fallback to click()
-            try { customBg.showPicker(); } catch (e) { customBg.click(); }
-          }
+          // Open in-app color picker (works on iOS Safari)
+          BL.openColorPicker({
+            anchor: btn,
+            color: BL.S.pages[BL.cur].bg || '#FFFFFF',
+            onApply: function(hex) {
+              BL.pushUndo();
+              BL.S.pages[BL.cur].bg = hex;
+              renderSwatches();
+              renderEditor();
+              renderStrip();
+              BL.save();
+            }
+          });
           return;
         }
         
@@ -866,18 +873,6 @@
       });
     }
     
-    // Custom colour picker
-    var customBg = document.getElementById('customBg');
-    if (customBg) {
-      customBg.addEventListener('input', function(e) {
-        BL.pushUndo();
-        BL.S.pages[BL.cur].bg = e.target.value;
-        renderSwatches();
-        renderEditor();
-        renderStrip();
-        BL.save();
-      });
-    }
     
     // Add layer buttons (left rail)
     var bAddPhoto = document.getElementById('bAddPhoto');
