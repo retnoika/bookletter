@@ -957,10 +957,76 @@ input {
   font-size: 12px;
 }
 
+/* Sections with consistent spacing */
 #inspector .insp-section {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
+#inspector .insp-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Grid row for geometry fields: 2 equal columns */
+#inspector .insp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#inspector .insp-grid:last-child {
+  margin-bottom: 0;
+}
+
+/* Field wrapper with label above input */
+#inspector .insp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#inspector .insp-field-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Input with unit suffix container */
+#inspector .insp-input-wrap {
+  position: relative;
+  display: flex;
+}
+
+#inspector .insp-input-wrap input {
+  width: 100%;
+  padding: 8px 28px 8px 8px; /* room for suffix */
+  border: var(--border-w) solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  min-height: 36px;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+#inspector .insp-input-wrap input::-webkit-outer-spin-button,
+#inspector .insp-input-wrap input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#inspector .insp-unit {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+
+/* Simple row for labels + controls (Font, Align, etc.) */
 #inspector .insp-row {
   display: flex;
   align-items: center;
@@ -968,44 +1034,170 @@ input {
   margin-bottom: 8px;
 }
 
-#inspector label {
+#inspector .insp-row:last-child {
+  margin-bottom: 0;
+}
+
+#inspector .insp-row > span {
   font-size: 11px;
+  font-weight: 500;
   color: var(--ink-muted);
-  min-width: 50px;
+  min-width: 60px;
+  flex-shrink: 0;
 }
 
-#inspector input[type="number"],
-#inspector input[type="text"],
-#inspector select {
-  flex: 1;
-  padding: 6px 8px;
+/* Layer order buttons - 4 equal icon buttons */
+#inspector .insp-order {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+#inspector .insp-order button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
   border: var(--border-w) solid var(--line);
   background: var(--surface);
-  font-size: 11px;
-  min-height: 32px;
+  min-height: 36px;
+  color: var(--ink-muted);
 }
 
-#inspector input[type="color"] {
-  width: 32px;
-  height: 32px;
-  padding: 2px;
+#inspector .insp-order button:hover {
+  background: var(--desk);
+  color: var(--ink);
+}
+
+/* Actions row - equal width buttons */
+#inspector .insp-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+#inspector .insp-actions.single {
+  grid-template-columns: 1fr;
+}
+
+#inspector .insp-actions button {
+  padding: 10px 12px;
   border: var(--border-w) solid var(--line);
-}
-
-#inspector button {
+  background: var(--surface);
   font-size: 12px;
-  padding: 6px 10px;
-  border: var(--border-w) solid var(--line);
-  background: var(--surface);
-  min-height: 32px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
-#inspector button:hover {
+#inspector .insp-actions button:hover {
   background: var(--desk);
 }
 
-#inspector button[data-act="clearing"] {
+#inspector .insp-actions button.danger {
   color: var(--accent);
+  border-color: var(--accent-tint-rule);
+}
+
+#inspector .insp-actions button.danger:hover {
+  background: var(--accent-tint-wash);
+}
+
+#inspector .insp-actions button.primary {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-color: var(--accent);
+}
+
+#inspector .insp-actions button.primary:hover {
+  background: var(--accent-hover);
+}
+
+/* Segmented 2-button controls */
+#inspector .seg2 {
+  display: flex;
+  flex: 1;
+  border: var(--border-w) solid var(--line);
+  overflow: hidden;
+}
+
+#inspector .seg2 button {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: none;
+  border-right: var(--border-w) solid var(--line);
+  background: var(--surface);
+  min-height: 32px;
+}
+
+#inspector .seg2 button:last-child {
+  border-right: none;
+}
+
+#inspector .seg2 button:hover {
+  background: var(--desk);
+}
+
+#inspector .seg2 button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+/* Hint text */
+#inspector .hint {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin: 8px 0 0 0;
+  line-height: 1.4;
+}
+
+/* Ghost button for secondary actions */
+#inspector button.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-muted);
+  padding: 6px 0;
+  min-height: auto;
+}
+
+#inspector button.ghost:hover {
+  color: var(--ink);
+  background: transparent;
+}
+
+/* Color button */
+#inspector .insp-color-btn {
+  width: 36px;
+  height: 36px;
+  border: var(--border-w) solid var(--line);
+  flex-shrink: 0;
+}
+
+#inspector .insp-color-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Text layer size input inline with row */
+#inspector .insp-row input[type="number"] {
+  width: 70px;
+  flex-shrink: 0;
+  padding: 6px 8px;
+  border: var(--border-w) solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  min-height: 32px;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+#inspector .insp-row input::-webkit-outer-spin-button,
+#inspector .insp-row input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* ============ Safety Panel ============ */

@@ -237,60 +237,97 @@
   // ============ Inspector rendering ============
   function renderInspector() {
     var box = document.getElementById('inspector');
+    var labelEl = document.getElementById('inspectorLabel');
+    var titleEl = document.getElementById('inspectorTitle');
     if (!box) return;
     
     var layer = BL.findLayer(BL.sel);
     if (!layer) {
+      if (labelEl) labelEl.textContent = 'SELECTED PAGE';
+      if (titleEl) titleEl.innerHTML = 'Add a photo';
       box.innerHTML = '<p class="hint" style="margin:0">Click a layer on the page to edit it.</p>';
       return;
     }
     
+    // Update header based on layer type
+    if (labelEl) labelEl.textContent = 'SELECTED LAYER';
+    if (titleEl) {
+      if (layer.kind === 'photo') {
+        titleEl.innerHTML = layer.src ? 'Photo layer' : 'Empty photo';
+      } else if (layer.kind === 'text') {
+        titleEl.innerHTML = 'Text layer';
+      } else {
+        titleEl.innerHTML = 'Layer';
+      }
+    }
+    
     var html = '';
     
-    // Common controls: position, size, rotation, opacity
+    // ===== Geometry section: X/Y, W/H, Rotation/Opacity =====
     html += '<div class="insp-section">';
-    html += '<div class="insp-row"><label>X <input type="number" data-prop="x" value="' + layer.x.toFixed(1) + '" step="0.1"> mm</label>';
-    html += '<label>Y <input type="number" data-prop="y" value="' + layer.y.toFixed(1) + '" step="0.1"> mm</label></div>';
-    html += '<div class="insp-row"><label>W <input type="number" data-prop="w" value="' + layer.w.toFixed(1) + '" step="0.1" min="1"> mm</label>';
-    html += '<label>H <input type="number" data-prop="h" value="' + layer.h.toFixed(1) + '" step="0.1" min="1"> mm</label></div>';
-    html += '<div class="insp-row"><label>Rotation <input type="number" data-prop="rot" value="' + layer.rot + '" step="1">°</label>';
-    html += '<label>Opacity <input type="number" data-prop="opacity" value="' + layer.opacity.toFixed(2) + '" step="0.05" min="0" max="1"></label></div>';
+    
+    // X and Y row
+    html += '<div class="insp-grid">';
+    html += '<div class="insp-field"><span class="insp-field-label">X</span>';
+    html += '<div class="insp-input-wrap"><input type="number" inputmode="decimal" data-prop="x" value="' + layer.x.toFixed(1) + '" step="0.1"><span class="insp-unit">mm</span></div></div>';
+    html += '<div class="insp-field"><span class="insp-field-label">Y</span>';
+    html += '<div class="insp-input-wrap"><input type="number" inputmode="decimal" data-prop="y" value="' + layer.y.toFixed(1) + '" step="0.1"><span class="insp-unit">mm</span></div></div>';
     html += '</div>';
     
-    // Layer order buttons
+    // W and H row
+    html += '<div class="insp-grid">';
+    html += '<div class="insp-field"><span class="insp-field-label">W</span>';
+    html += '<div class="insp-input-wrap"><input type="number" inputmode="decimal" data-prop="w" value="' + layer.w.toFixed(1) + '" step="0.1" min="1"><span class="insp-unit">mm</span></div></div>';
+    html += '<div class="insp-field"><span class="insp-field-label">H</span>';
+    html += '<div class="insp-input-wrap"><input type="number" inputmode="decimal" data-prop="h" value="' + layer.h.toFixed(1) + '" step="0.1" min="1"><span class="insp-unit">mm</span></div></div>';
+    html += '</div>';
+    
+    // Rotation and Opacity row
+    html += '<div class="insp-grid">';
+    html += '<div class="insp-field"><span class="insp-field-label">Rotation</span>';
+    html += '<div class="insp-input-wrap"><input type="number" inputmode="decimal" data-prop="rot" value="' + layer.rot + '" step="1"><span class="insp-unit">°</span></div></div>';
+    html += '<div class="insp-field"><span class="insp-field-label">Opacity</span>';
+    html += '<div class="insp-input-wrap"><input type="number" inputmode="decimal" data-prop="opacity" value="' + layer.opacity.toFixed(2) + '" step="0.05" min="0" max="1"></div></div>';
+    html += '</div>';
+    
+    html += '</div>';
+    
+    // ===== Layer order buttons with icons =====
     html += '<div class="insp-section">';
-    html += '<div class="acts">';
-    html += '<button class="btn sm" data-act="front">To front</button>';
-    html += '<button class="btn sm" data-act="forward">Forward</button>';
-    html += '<button class="btn sm" data-act="back">Back</button>';
-    html += '<button class="btn sm" data-act="bottom">To back</button>';
+    html += '<div class="insp-order">';
+    html += '<button data-act="front" aria-label="Move to front" title="Move to front">' + BL.icon('chevrons-up') + '</button>';
+    html += '<button data-act="forward" aria-label="Bring forward" title="Bring forward">' + BL.icon('arrow-up') + '</button>';
+    html += '<button data-act="back" aria-label="Send backward" title="Send backward">' + BL.icon('arrow-down') + '</button>';
+    html += '<button data-act="bottom" aria-label="Send to back" title="Send to back">' + BL.icon('chevrons-down') + '</button>';
     html += '</div>';
     html += '</div>';
     
-    // Kind-specific controls
+    // ===== Kind-specific controls =====
     if (layer.kind === 'photo') {
       html += '<div class="insp-section">';
-      html += '<button class="btn big" data-act="pick">' + (layer.src ? 'Replace image' : 'Choose image') + '</button>';
+      html += '<div class="insp-actions single">';
+      html += '<button class="primary" data-act="pick">' + (layer.src ? 'Replace image' : 'Choose image') + '</button>';
+      html += '</div>';
       if (layer.src) {
-        html += '<div class="insp-row" style="margin-top:10px"><span>Scale</span>';
+        html += '<div class="insp-row" style="margin-top:12px"><span>Scale</span>';
         html += '<div class="seg2">';
         html += '<button data-act="fit" data-v="cover" aria-pressed="' + (layer.fit === 'cover') + '">Fill</button>';
         html += '<button data-act="fit" data-v="contain" aria-pressed="' + (layer.fit === 'contain') + '">Fit</button>';
         html += '</div></div>';
-        html += '<button class="btn ghost" data-act="clearimg">Remove image</button>';
+        html += '<button class="ghost" data-act="clearimg">Remove image</button>';
         if (layer.fit === 'cover') {
           var panMode = BL.photoPanMode ? BL.photoPanMode() : false;
-          html += '<div class="insp-row" style="margin-top:8px"><span>Pan image</span>';
+          html += '<div class="insp-row" style="margin-top:8px"><span>Pan</span>';
           html += '<div class="seg2">';
           html += '<button data-act="panmode" data-v="false" aria-pressed="' + (!panMode) + '">Off</button>';
           html += '<button data-act="panmode" data-v="true" aria-pressed="' + (panMode) + '">On</button>';
           html += '</div></div>';
-          html += '<p class="hint">Alt+drag or enable Pan to reposition the image inside the frame.</p>';
+          html += '<p class="hint">Alt+drag or enable Pan to reposition.</p>';
         } else {
-          html += '<p class="hint">Fit shows the whole image with margins.</p>';
+          html += '<p class="hint">Fit shows the whole image.</p>';
         }
       } else {
-        html += '<p class="hint">You can also drop an image file onto the layer.</p>';
+        html += '<p class="hint">Drop an image onto the layer.</p>';
       }
       html += '</div>';
     } else if (layer.kind === 'text') {
@@ -301,7 +338,7 @@
       html += '<button data-act="font" data-v="serif" aria-pressed="' + (layer.font === 'serif') + '">Serif</button>';
       html += '<button data-act="font" data-v="mono" aria-pressed="' + (layer.font === 'mono') + '">Mono</button>';
       html += '</div></div>';
-      html += '<div class="insp-row"><span>Size (mm)</span><input type="number" data-prop="size" value="' + layer.size.toFixed(1) + '" step="0.5" min="1" max="100"></div>';
+      html += '<div class="insp-row"><span>Size</span><input type="number" inputmode="decimal" data-prop="size" value="' + layer.size.toFixed(1) + '" step="0.5" min="1" max="100"></div>';
       html += '<div class="insp-row"><span>Align</span>';
       html += '<div class="seg2">';
       html += '<button data-act="align" data-v="left" aria-pressed="' + (layer.align === 'left') + '">Left</button>';
@@ -314,15 +351,17 @@
       html += '<button data-act="bold" data-v="true" aria-pressed="' + (layer.bold) + '">Bold</button>';
       html += '</div></div>';
       html += '<div class="insp-row"><span>Color</span><button type="button" class="insp-color-btn" data-act="color" style="background:' + layer.color + '" title="' + layer.color + '"></button></div>';
-      html += '<div class="insp-row"><span>Line height</span><input type="number" data-prop="line" value="' + layer.line.toFixed(2) + '" step="0.1" min="0.8" max="3"></div>';
+      html += '<div class="insp-row"><span>Line ht</span><input type="number" inputmode="decimal" data-prop="line" value="' + layer.line.toFixed(2) + '" step="0.1" min="0.8" max="3"></div>';
       html += '</div>';
     }
-    // Duplicate and delete
+    
+    // ===== Duplicate and Delete =====
     html += '<div class="insp-section">';
-    html += '<div class="acts">';
-    html += '<button class="btn" data-act="duplicate">Duplicate</button>';
-    html += '<button class="btn danger" data-act="delete">Delete</button>';
-    html += '</div></div>';
+    html += '<div class="insp-actions">';
+    html += '<button data-act="duplicate">Duplicate</button>';
+    html += '<button class="danger" data-act="delete">Delete</button>';
+    html += '</div>';
+    html += '</div>';
     
     box.innerHTML = html;
   }
