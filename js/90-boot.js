@@ -192,7 +192,7 @@
   function renderPageView(stage, container) {
     stage.classList.remove('spread-view');
     container.innerHTML = '';
-    container.appendChild(BL.renderPage(BL.cur, { editable: true }));
+    container.appendChild(BL.renderPage(BL.cur, { edit: true }));
     BL.fitEditor();
   }
 
@@ -227,7 +227,7 @@
     });
     
     container.innerHTML = '';
-    container.appendChild(BL.renderPage(BL.cur, { editable: true }));
+    container.appendChild(BL.renderPage(BL.cur, { edit: true }));
     BL.fitEditor();
   }
 
@@ -851,7 +851,8 @@
           var customBg = document.getElementById('customBg');
           if (customBg) {
             customBg.value = BL.S.pages[BL.cur].bg || '#ffffff';
-            customBg.click();
+            // showPicker() is more reliable across browsers; fallback to click()
+            try { customBg.showPicker(); } catch (e) { customBg.click(); }
           }
           return;
         }

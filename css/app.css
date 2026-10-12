@@ -1250,12 +1250,17 @@ input {
 }
 
 /* ============ Hidden inputs ============ */
+/* Safari requires inputs to be rendered (not display:none/visibility:hidden)
+   to show native pickers from programmatic clicks. Keep in layout but invisible. */
 .hidden-input {
   position: absolute;
   width: 1px;
   height: 1px;
   opacity: 0;
+  border: 0;
+  padding: 0;
   pointer-events: none;
+  clip-path: inset(50%);
 }
 
 /* ============ Toast ============ */

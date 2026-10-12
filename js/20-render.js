@@ -25,6 +25,9 @@
   // ============ Render a layer ============
   function renderLayer(layer, opts) {
     opts = opts || {};
+    // Tolerate both 'edit' and 'editable' keys — a mismatch here silently
+    // produces an empty canvas with no placeholder/selection, hard to debug.
+    var isEdit = opts.edit || opts.editable;
     var mm = opts.mm || 1;
 
     var wrap = el('div', 'layer');
@@ -53,7 +56,7 @@
         img.style.objectFit = layer.fit === 'contain' ? 'contain' : 'cover';
         img.style.objectPosition = layer.px + '% ' + layer.py + '%';
         wrap.appendChild(img);
-      } else if (opts.edit) {
+      } else if (isEdit) {
         var btn = el('button', 'ph');
         btn.type = 'button';
         btn.textContent = '+ Add image';
@@ -68,7 +71,7 @@
       tx.style.lineHeight = String(layer.line);
       tx.style.color = layer.color;
 
-      if (opts.edit) {
+      if (isEdit) {
         tx.contentEditable = 'plaintext-only';
         if (tx.contentEditable !== 'plaintext-only') {
           tx.contentEditable = 'true';
@@ -85,7 +88,7 @@
     }
 
     // Selection indicator for editor
-    if (opts.edit && opts.sel === layer.id) {
+    if (isEdit && opts.sel === layer.id) {
       wrap.classList.add('sel');
     }
 
@@ -95,6 +98,8 @@
   // ============ Render a page ============
   function renderPage(pageIdx, opts) {
     opts = opts || {};
+    // Tolerate both 'edit' and 'editable' keys (see renderLayer comment)
+    var isEdit = opts.edit || opts.editable;
     var page = BL.S.pages[pageIdx];
     if (!page) return el('div', 'pg');
 
@@ -102,7 +107,7 @@
     var pw = dims[0], ph = dims[1];
     var safe = BL.S.safe || 8;
 
-    var pg = el('div', 'pg' + (opts.edit ? ' edit' : ''));
+    var pg = el('div', 'pg' + (isEdit ? ' edit' : ''));
     pg.style.background = page.bg;
 
     // Auto text color for dark backgrounds
@@ -117,7 +122,7 @@
     }
 
     // Margin guide
-    if (opts.edit && BL.S.guide) {
+    if (isEdit && BL.S.guide) {
       var guide = el('div', 'guide');
       pg.appendChild(guide);
     }
