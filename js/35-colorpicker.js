@@ -1,101 +1,123 @@
 /**
- * Bookletter - in-app color picker
- * Replaces native <input type="color"> which doesn't work on iOS Safari.
- * Reusable for page background and text colour.
+ * Bookletter - in-app color picker with wheel interface
+ * Hue ring + saturation/brightness square, presets, recents, hex input.
+ * Works on iOS Safari, touch and keyboard accessible.
  */
 (function() {
   'use strict';
   var BL = window.BL = window.BL || {};
 
-  // ============ Palette ============
-  // Design tokens from css/app.css + paper presets
+  // ============ Palette (designer tokens + paper presets) ============
   var PALETTE = [
-    // Candy Pink row (5)
+    // Candy Pink (5)
     { hex: '#DE505B', name: 'Candy Pink 750' },
     { hex: '#E4717A', name: 'Candy Pink 500' },
     { hex: '#EA9299', name: 'Candy Pink 250' },
     { hex: '#F4C3C7', name: 'Candy Pink 100' },
     { hex: '#FDF5F5', name: 'Candy Pink 50' },
-    // Cornflower Blue row (5)
+    // Cornflower Blue (5)
     { hex: '#505BDE', name: 'Cornflower Blue 750' },
     { hex: '#717AE4', name: 'Cornflower Blue 500' },
     { hex: '#9299EA', name: 'Cornflower Blue 250' },
     { hex: '#C3C7F4', name: 'Cornflower Blue 100' },
     { hex: '#F5F5FD', name: 'Cornflower Blue 50' },
-    // Neutrals row (5)
+    // Neutrals (5)
     { hex: '#161719', name: 'Near Black' },
     { hex: '#565A62', name: 'Dark Grey' },
     { hex: '#B0B3B9', name: 'Mid Grey' },
     { hex: '#D9DBDE', name: 'Light Grey' },
     { hex: '#FFFFFF', name: 'White' },
-    // Paper presets row (5)
+    // Paper presets (6)
     { hex: '#FFFFFF', name: 'White Paper' },
     { hex: '#FFFEF0', name: 'Cream' },
     { hex: '#FFF9C4', name: 'Yellow' },
     { hex: '#E3F2FD', name: 'Blue' },
+    { hex: '#F5F5F5', name: 'Light Grey Paper' },
     { hex: '#263238', name: 'Near Black Paper' }
   ];
 
+  var RECENT_KEY = 'bookletter-recent-colors';
+  var MAX_RECENT = 8;
+
   // ============ State ============
-  var pickerEl = null;       // The picker DOM element
-  var currentCallback = null; // Function to call with selected color
-  var originalColor = '';    // Color before opening (for cancel)
-  var livePreviewCb = null;  // Optional live preview callback
+  var pickerEl = null;
+  var currentCallback = null;
+  var originalColor = '';
+  var currentHue = 0;       // 0-360
+  var currentSat = 100;     // 0-100
+  var currentBri = 50;      // 0-100 (brightness/value in HSB)
+  var isDraggingRing = false;
+  var isDraggingSquare = false;
 
-  // ============ Color conversion ============
-  function hexToHsl(hex) {
+  // ============ Color conversion (HSB/HSV model) ============
+  function hexToRgb(hex) {
     hex = hex.replace('#', '');
-    var r = parseInt(hex.substr(0, 2), 16) / 255;
-    var g = parseInt(hex.substr(2, 2), 16) / 255;
-    var b = parseInt(hex.substr(4, 2), 16) / 255;
-
-    var max = Math.max(r, g, b), min = Math.min(r, g, b);
-    var h, s, l = (max + min) / 2;
-
-    if (max === min) {
-      h = s = 0;
-    } else {
-      var d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-        case g: h = ((b - r) / d + 2) / 6; break;
-        case b: h = ((r - g) / d + 4) / 6; break;
-      }
-    }
-    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+    return {
+      r: parseInt(hex.substr(0, 2), 16),
+      g: parseInt(hex.substr(2, 2), 16),
+      b: parseInt(hex.substr(4, 2), 16)
+    };
   }
 
-  function hslToHex(h, s, l) {
-    h = h / 360; s = s / 100; l = l / 100;
-    var r, g, b;
-    if (s === 0) {
-      r = g = b = l;
-    } else {
-      function hue2rgb(p, q, t) {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1/6) return p + (q - p) * 6 * t;
-        if (t < 1/2) return q;
-        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-        return p;
-      }
-      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      var p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1/3);
-      g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1/3);
-    }
+  function rgbToHex(r, g, b) {
     var toHex = function(x) {
-      var hex = Math.round(x * 255).toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
+      var h = Math.round(Math.max(0, Math.min(255, x))).toString(16);
+      return h.length === 1 ? '0' + h : h;
     };
     return '#' + toHex(r) + toHex(g) + toHex(b);
   }
 
+  function rgbToHsb(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, v = max;
+    var d = max - min;
+    s = max === 0 ? 0 : d / max;
+    if (max === min) {
+      h = 0;
+    } else {
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), b: Math.round(v * 100) };
+  }
+
+  function hsbToRgb(h, s, b) {
+    h /= 360; s /= 100; b /= 100;
+    var r, g, bl;
+    var i = Math.floor(h * 6);
+    var f = h * 6 - i;
+    var p = b * (1 - s);
+    var q = b * (1 - f * s);
+    var t = b * (1 - (1 - f) * s);
+    switch (i % 6) {
+      case 0: r = b; g = t; bl = p; break;
+      case 1: r = q; g = b; bl = p; break;
+      case 2: r = p; g = b; bl = t; break;
+      case 3: r = p; g = q; bl = b; break;
+      case 4: r = t; g = p; bl = b; break;
+      case 5: r = b; g = p; bl = q; break;
+    }
+    return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(bl * 255) };
+  }
+
+  function hsbToHex(h, s, b) {
+    var rgb = hsbToRgb(h, s, b);
+    return rgbToHex(rgb.r, rgb.g, rgb.b);
+  }
+
+  function hexToHsb(hex) {
+    var rgb = hexToRgb(hex);
+    return rgbToHsb(rgb.r, rgb.g, rgb.b);
+  }
+
   function isValidHex(str) {
     str = str.replace('#', '');
-    return /^[0-9A-Fa-f]{6}$/.test(str);
+    return /^[0-9A-Fa-f]{6}$/.test(str) || /^[0-9A-Fa-f]{3}$/.test(str);
   }
 
   function normalizeHex(str) {
@@ -104,6 +126,30 @@
       str = str[0] + str[0] + str[1] + str[1] + str[2] + str[2];
     }
     return '#' + str;
+  }
+
+  // ============ Recent colors ============
+  function getRecentColors() {
+    try {
+      var data = localStorage.getItem(RECENT_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function addRecentColor(hex) {
+    hex = hex.toUpperCase();
+    var recents = getRecentColors();
+    // Remove if already present
+    recents = recents.filter(function(c) { return c !== hex; });
+    // Add to front
+    recents.unshift(hex);
+    // Limit to MAX_RECENT
+    if (recents.length > MAX_RECENT) recents = recents.slice(0, MAX_RECENT);
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(recents));
+    } catch (e) {}
   }
 
   // ============ Build picker DOM ============
@@ -118,39 +164,45 @@
 
     var html = '';
     html += '<div class="cp-header"><span class="micro-label">Choose colour</span></div>';
-    
-    // Swatch grid - 5 columns, 4 rows
+
+    // Hue ring with center preview
+    html += '<div class="cp-wheel-wrap">';
+    html += '<div class="cp-ring" id="cpRing" tabindex="0" role="slider" aria-label="Hue" aria-valuemin="0" aria-valuemax="360" aria-valuenow="0" aria-valuetext="0 degrees">';
+    html += '<div class="cp-ring-handle" id="cpRingHandle"></div>';
+    html += '<div class="cp-ring-center" id="cpRingCenter"></div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Saturation/Brightness square
+    html += '<div class="cp-square-wrap">';
+    html += '<canvas class="cp-square" id="cpSquare" width="200" height="120" tabindex="0" role="slider" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="Saturation 100%, Brightness 50%"></canvas>';
+    html += '<div class="cp-square-handle" id="cpSquareHandle"></div>';
+    html += '</div>';
+
+    // Hex input and preview
+    html += '<div class="cp-preview-row">';
+    html += '<div class="cp-preview" id="cpPreview"></div>';
+    html += '<input type="text" id="cpHex" class="cp-hex" maxlength="7" placeholder="#FFFFFF" aria-label="Hex color value">';
+    html += '</div>';
+
+    // Recent colors (rendered dynamically)
+    html += '<div class="cp-recents" id="cpRecents"></div>';
+
+    // Preset swatches
+    html += '<div class="cp-section-label micro-label">Presets</div>';
     html += '<div class="cp-swatches">';
     for (var i = 0; i < PALETTE.length; i++) {
       var c = PALETTE[i];
-      var isDark = hexToHsl(c.hex).l < 50;
+      var hsb = hexToHsb(c.hex);
+      var isDark = hsb.b < 50;
       html += '<button type="button" class="cp-swatch' + (isDark ? ' dark' : '') + '" ';
       html += 'data-hex="' + c.hex + '" title="' + c.name + '" ';
       html += 'style="background:' + c.hex + '"></button>';
     }
     html += '</div>';
 
-    // HSL sliders
-    html += '<div class="cp-sliders">';
-    html += '<div class="cp-slider-row">';
-    html += '<label class="micro-label">Hue</label>';
-    html += '<input type="range" id="cpHue" min="0" max="360" value="0" class="cp-range cp-hue">';
-    html += '</div>';
-    html += '<div class="cp-slider-row">';
-    html += '<label class="micro-label">Saturation</label>';
-    html += '<input type="range" id="cpSat" min="0" max="100" value="100" class="cp-range cp-sat">';
-    html += '</div>';
-    html += '<div class="cp-slider-row">';
-    html += '<label class="micro-label">Lightness</label>';
-    html += '<input type="range" id="cpLit" min="0" max="100" value="50" class="cp-range cp-lit">';
-    html += '</div>';
-    html += '</div>';
-
-    // Preview and hex input
-    html += '<div class="cp-preview-row">';
-    html += '<div class="cp-preview" id="cpPreview"></div>';
-    html += '<input type="text" id="cpHex" class="cp-hex" maxlength="7" placeholder="#FFFFFF">';
-    html += '</div>';
+    // Print note
+    html += '<div class="cp-note">Screen colour is not a proof—printed results depend on printer, ink and paper.</div>';
 
     // Actions
     html += '<div class="cp-actions">';
@@ -162,20 +214,308 @@
     document.body.appendChild(el);
     pickerEl = el;
 
-    // Event listeners
     setupPickerEvents();
-
     return el;
   }
 
+  function renderRecents() {
+    var container = document.getElementById('cpRecents');
+    if (!container) return;
+
+    var recents = getRecentColors();
+    if (recents.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+
+    container.style.display = '';
+    var html = '<div class="cp-section-label micro-label">Recent</div>';
+    html += '<div class="cp-recents-row">';
+    for (var i = 0; i < recents.length; i++) {
+      var c = recents[i];
+      var hsb = hexToHsb(c);
+      var isDark = hsb.b < 50;
+      html += '<button type="button" class="cp-swatch cp-recent' + (isDark ? ' dark' : '') + '" ';
+      html += 'data-hex="' + c + '" title="Recent: ' + c + '" ';
+      html += 'style="background:' + c + '"></button>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  // ============ Ring drawing and interaction ============
+  function drawRing() {
+    var ring = document.getElementById('cpRing');
+    if (!ring) return;
+    // The ring background is CSS conic-gradient, no canvas needed
+  }
+
+  function updateRingHandle() {
+    var ring = document.getElementById('cpRing');
+    var handle = document.getElementById('cpRingHandle');
+    if (!ring || !handle) return;
+
+    var rect = ring.getBoundingClientRect();
+    var cx = rect.width / 2;
+    var cy = rect.height / 2;
+    var radius = (Math.min(rect.width, rect.height) / 2) - 12; // Handle on the ring
+
+    // Hue: 0 at top, clockwise. CSS conic-gradient starts at top.
+    // Angle in radians: 0 = top, clockwise
+    var angle = (currentHue - 90) * Math.PI / 180;
+    var hx = cx + radius * Math.cos(angle);
+    var hy = cy + radius * Math.sin(angle);
+
+    handle.style.left = hx + 'px';
+    handle.style.top = hy + 'px';
+
+    // Update aria
+    ring.setAttribute('aria-valuenow', currentHue);
+    ring.setAttribute('aria-valuetext', currentHue + ' degrees');
+  }
+
+  function updateRingCenter() {
+    var center = document.getElementById('cpRingCenter');
+    if (!center) return;
+    var hex = hsbToHex(currentHue, currentSat, currentBri);
+    center.style.background = hex;
+  }
+
+  function ringPointerToHue(x, y, ring) {
+    var rect = ring.getBoundingClientRect();
+    var cx = rect.width / 2;
+    var cy = rect.height / 2;
+    var dx = x - rect.left - cx;
+    var dy = y - rect.top - cy;
+    // Angle from center, 0 at right, counter-clockwise
+    var angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    // Convert: 0 at top, clockwise
+    var hue = (angle + 90 + 360) % 360;
+    return Math.round(hue);
+  }
+
+  // ============ Square drawing and interaction ============
+  function drawSquare() {
+    var canvas = document.getElementById('cpSquare');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var w = canvas.width;
+    var h = canvas.height;
+
+    // Draw saturation gradient (white to pure hue)
+    var hueColor = hsbToHex(currentHue, 100, 100);
+    var gradH = ctx.createLinearGradient(0, 0, w, 0);
+    gradH.addColorStop(0, '#FFFFFF');
+    gradH.addColorStop(1, hueColor);
+    ctx.fillStyle = gradH;
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw brightness gradient (transparent to black)
+    var gradV = ctx.createLinearGradient(0, 0, 0, h);
+    gradV.addColorStop(0, 'rgba(0,0,0,0)');
+    gradV.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.fillStyle = gradV;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  function updateSquareHandle() {
+    var canvas = document.getElementById('cpSquare');
+    var handle = document.getElementById('cpSquareHandle');
+    if (!canvas || !handle) return;
+
+    var w = canvas.width;
+    var h = canvas.height;
+    // Saturation: 0 at left, 100 at right
+    // Brightness: 100 at top, 0 at bottom
+    var x = (currentSat / 100) * w;
+    var y = ((100 - currentBri) / 100) * h;
+
+    handle.style.left = x + 'px';
+    handle.style.top = y + 'px';
+
+    // Update aria
+    canvas.setAttribute('aria-valuenow', currentSat);
+    canvas.setAttribute('aria-valuetext', 'Saturation ' + currentSat + '%, Brightness ' + currentBri + '%');
+  }
+
+  function squarePointerToSB(x, y, canvas) {
+    var rect = canvas.getBoundingClientRect();
+    var px = x - rect.left;
+    var py = y - rect.top;
+    var w = canvas.width;
+    var h = canvas.height;
+    // Scale to canvas coordinates
+    var scaleX = w / rect.width;
+    var scaleY = h / rect.height;
+    px *= scaleX;
+    py *= scaleY;
+    var sat = Math.max(0, Math.min(100, Math.round((px / w) * 100)));
+    var bri = Math.max(0, Math.min(100, Math.round((1 - py / h) * 100)));
+    return { s: sat, b: bri };
+  }
+
+  // ============ Update all displays ============
+  function updateAllDisplays() {
+    var hex = hsbToHex(currentHue, currentSat, currentBri);
+
+    // Preview
+    var preview = document.getElementById('cpPreview');
+    if (preview) preview.style.background = hex;
+
+    // Hex field
+    var hexInput = document.getElementById('cpHex');
+    if (hexInput && document.activeElement !== hexInput) {
+      hexInput.value = hex.toUpperCase();
+    }
+
+    // Ring handle and center
+    updateRingHandle();
+    updateRingCenter();
+
+    // Square (redraw for new hue)
+    drawSquare();
+    updateSquareHandle();
+  }
+
+  function setFromHex(hex) {
+    if (!isValidHex(hex)) return false;
+    hex = normalizeHex(hex);
+    var hsb = hexToHsb(hex);
+    currentHue = hsb.h;
+    currentSat = hsb.s;
+    currentBri = hsb.b;
+    updateAllDisplays();
+    return true;
+  }
+
+  // ============ Event handlers ============
   function setupPickerEvents() {
     var el = pickerEl;
+    var ring = document.getElementById('cpRing');
+    var square = document.getElementById('cpSquare');
+    var hexInput = document.getElementById('cpHex');
 
-    // Swatch clicks
+    // Ring pointer events
+    function onRingPointer(e) {
+      var hue = ringPointerToHue(e.clientX, e.clientY, ring);
+      currentHue = hue;
+      updateAllDisplays();
+    }
+
+    ring.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      ring.setPointerCapture(e.pointerId);
+      isDraggingRing = true;
+      onRingPointer(e);
+    });
+
+    ring.addEventListener('pointermove', function(e) {
+      if (isDraggingRing) {
+        onRingPointer(e);
+      }
+    });
+
+    ring.addEventListener('pointerup', function(e) {
+      isDraggingRing = false;
+      ring.releasePointerCapture(e.pointerId);
+    });
+
+    ring.addEventListener('pointercancel', function(e) {
+      isDraggingRing = false;
+    });
+
+    // Ring keyboard
+    ring.addEventListener('keydown', function(e) {
+      var step = e.shiftKey ? 10 : 1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+        currentHue = (currentHue + step) % 360;
+        updateAllDisplays();
+        e.preventDefault();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+        currentHue = (currentHue - step + 360) % 360;
+        updateAllDisplays();
+        e.preventDefault();
+      }
+    });
+
+    // Square pointer events
+    function onSquarePointer(e) {
+      var sb = squarePointerToSB(e.clientX, e.clientY, square);
+      currentSat = sb.s;
+      currentBri = sb.b;
+      updateAllDisplays();
+    }
+
+    square.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      square.setPointerCapture(e.pointerId);
+      isDraggingSquare = true;
+      onSquarePointer(e);
+    });
+
+    square.addEventListener('pointermove', function(e) {
+      if (isDraggingSquare) {
+        onSquarePointer(e);
+      }
+    });
+
+    square.addEventListener('pointerup', function(e) {
+      isDraggingSquare = false;
+      square.releasePointerCapture(e.pointerId);
+    });
+
+    square.addEventListener('pointercancel', function(e) {
+      isDraggingSquare = false;
+    });
+
+    // Square keyboard
+    square.addEventListener('keydown', function(e) {
+      var step = e.shiftKey ? 10 : 1;
+      var changed = false;
+      if (e.key === 'ArrowRight') {
+        currentSat = Math.min(100, currentSat + step);
+        changed = true;
+      } else if (e.key === 'ArrowLeft') {
+        currentSat = Math.max(0, currentSat - step);
+        changed = true;
+      } else if (e.key === 'ArrowUp') {
+        currentBri = Math.min(100, currentBri + step);
+        changed = true;
+      } else if (e.key === 'ArrowDown') {
+        currentBri = Math.max(0, currentBri - step);
+        changed = true;
+      }
+      if (changed) {
+        updateAllDisplays();
+        e.preventDefault();
+      }
+    });
+
+    // Hex input
+    hexInput.addEventListener('input', function() {
+      var val = hexInput.value;
+      if (isValidHex(val)) {
+        setFromHex(val);
+      }
+    });
+
+    hexInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        if (isValidHex(hexInput.value)) {
+          applyCurrentColor();
+          closePicker();
+        }
+      } else if (e.key === 'Escape') {
+        closePicker();
+      }
+    });
+
+    // Swatch and preset clicks
     el.addEventListener('click', function(e) {
       var swatch = e.target.closest('.cp-swatch');
       if (swatch) {
         var hex = swatch.dataset.hex;
+        addRecentColor(hex);
         applyColor(hex);
         closePicker();
         return;
@@ -189,108 +529,31 @@
 
       var apply = e.target.closest('.cp-apply');
       if (apply) {
-        var hex = document.getElementById('cpHex').value;
-        if (isValidHex(hex)) {
-          applyColor(normalizeHex(hex));
-        }
+        applyCurrentColor();
         closePicker();
         return;
       }
     });
 
-    // Slider inputs
-    var hueSlider = document.getElementById('cpHue');
-    var satSlider = document.getElementById('cpSat');
-    var litSlider = document.getElementById('cpLit');
-    var hexInput = document.getElementById('cpHex');
-
-    function updateFromSliders() {
-      var h = parseInt(hueSlider.value, 10);
-      var s = parseInt(satSlider.value, 10);
-      var l = parseInt(litSlider.value, 10);
-      var hex = hslToHex(h, s, l);
-      hexInput.value = hex.toUpperCase();
-      updatePreview(hex);
-      updateSliderBackgrounds(h, s, l);
-      if (livePreviewCb) livePreviewCb(hex);
-    }
-
-    hueSlider.addEventListener('input', updateFromSliders);
-    satSlider.addEventListener('input', updateFromSliders);
-    litSlider.addEventListener('input', updateFromSliders);
-
-    // Hex input
-    hexInput.addEventListener('input', function() {
-      var val = hexInput.value;
-      if (isValidHex(val)) {
-        var hex = normalizeHex(val);
-        var hsl = hexToHsl(hex);
-        hueSlider.value = hsl.h;
-        satSlider.value = hsl.s;
-        litSlider.value = hsl.l;
-        updatePreview(hex);
-        updateSliderBackgrounds(hsl.h, hsl.s, hsl.l);
-        if (livePreviewCb) livePreviewCb(hex);
-      }
-    });
-
-    hexInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        var val = hexInput.value;
-        if (isValidHex(val)) {
-          applyColor(normalizeHex(val));
-          closePicker();
-        }
-      } else if (e.key === 'Escape') {
-        closePicker();
-      }
-    });
-
-    // Close on Escape
+    // Escape key
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && pickerEl && pickerEl.classList.contains('open')) {
+      if (e.key === 'Escape' && isPickerOpen()) {
         closePicker();
       }
     });
 
-    // Close on click outside
+    // Click outside
     document.addEventListener('mousedown', function(e) {
-      if (pickerEl && pickerEl.classList.contains('open')) {
-        if (!pickerEl.contains(e.target) && !e.target.closest('[data-open-picker]')) {
-          closePicker();
-        }
+      if (isPickerOpen() && !pickerEl.contains(e.target) && !e.target.closest('[data-open-picker]')) {
+        closePicker();
       }
     });
   }
 
-  function updatePreview(hex) {
-    var preview = document.getElementById('cpPreview');
-    if (preview) {
-      preview.style.background = hex;
-      // Add checkmark visibility based on lightness
-      var hsl = hexToHsl(hex);
-      preview.classList.toggle('dark', hsl.l < 50);
-    }
-  }
-
-  function updateSliderBackgrounds(h, s, l) {
-    var satSlider = document.getElementById('cpSat');
-    var litSlider = document.getElementById('cpLit');
-    
-    // Saturation slider: show hue at 0% and 100% saturation
-    if (satSlider) {
-      var sat0 = hslToHex(h, 0, l);
-      var sat100 = hslToHex(h, 100, l);
-      satSlider.style.setProperty('--track-bg', 'linear-gradient(to right, ' + sat0 + ', ' + sat100 + ')');
-    }
-    
-    // Lightness slider: show hue at 0%, 50%, 100% lightness
-    if (litSlider) {
-      var lit0 = hslToHex(h, s, 0);
-      var lit50 = hslToHex(h, s, 50);
-      var lit100 = hslToHex(h, s, 100);
-      litSlider.style.setProperty('--track-bg', 'linear-gradient(to right, ' + lit0 + ', ' + lit50 + ', ' + lit100 + ')');
-    }
+  function applyCurrentColor() {
+    var hex = hsbToHex(currentHue, currentSat, currentBri);
+    addRecentColor(hex);
+    applyColor(hex);
   }
 
   function applyColor(hex) {
@@ -306,7 +569,12 @@
     var viewW = window.innerWidth;
     var viewH = window.innerHeight;
 
-    // Reset position to measure
+    // Get header height to avoid overlap
+    var header = document.querySelector('.header');
+    var headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+    var minTop = Math.max(8, headerBottom + 8);
+
+    // Reset to measure
     el.style.left = '0';
     el.style.top = '0';
     var pickerW = el.offsetWidth;
@@ -321,16 +589,18 @@
       top = anchorRect.top - pickerH - 8;
     }
 
-    // Clamp to viewport
-    if (top < 8) top = 8;
+    // Clamp to viewport, respecting header
+    if (top < minTop) top = minTop;
     if (left + pickerW > viewW - 8) {
       left = viewW - pickerW - 8;
     }
     if (left < 8) left = 8;
 
-    // Final clamp for small screens
+    // Final clamp to ensure picker fits
     if (top + pickerH > viewH - 8) {
       top = viewH - pickerH - 8;
+      // If still overlapping header, allow scrolling
+      if (top < minTop) top = minTop;
     }
 
     el.style.left = left + 'px';
@@ -339,42 +609,40 @@
 
   // ============ Public API ============
   function openPicker(options) {
-    // options: { anchor, color, onApply, onLivePreview }
     createPicker();
 
-    // Close any existing
-    if (pickerEl.classList.contains('open')) {
+    if (isPickerOpen()) {
       closePicker();
     }
 
     originalColor = options.color || '#FFFFFF';
     currentCallback = options.onApply;
-    livePreviewCb = options.onLivePreview || null;
 
-    // Set initial values
-    var hsl = hexToHsl(originalColor);
-    document.getElementById('cpHue').value = hsl.h;
-    document.getElementById('cpSat').value = hsl.s;
-    document.getElementById('cpLit').value = hsl.l;
-    document.getElementById('cpHex').value = originalColor.toUpperCase();
-    updatePreview(originalColor);
-    updateSliderBackgrounds(hsl.h, hsl.s, hsl.l);
+    // Set initial values from color
+    setFromHex(originalColor);
 
-    // Mark active swatch if exact match
+    // Render recents
+    renderRecents();
+
+    // Mark active swatch
     var swatches = pickerEl.querySelectorAll('.cp-swatch');
+    var upperColor = originalColor.toUpperCase();
     for (var i = 0; i < swatches.length; i++) {
       var sw = swatches[i];
-      sw.classList.toggle('active', sw.dataset.hex.toUpperCase() === originalColor.toUpperCase());
+      sw.classList.toggle('active', sw.dataset.hex.toUpperCase() === upperColor);
     }
 
     // Position and show
     pickerEl.classList.add('open');
     positionPicker(options.anchor);
 
-    // Focus hex input for keyboard users
+    // Focus hex input
     setTimeout(function() {
-      document.getElementById('cpHex').focus();
-      document.getElementById('cpHex').select();
+      var hexInput = document.getElementById('cpHex');
+      if (hexInput) {
+        hexInput.focus();
+        hexInput.select();
+      }
     }, 50);
   }
 
@@ -383,7 +651,8 @@
       pickerEl.classList.remove('open');
     }
     currentCallback = null;
-    livePreviewCb = null;
+    isDraggingRing = false;
+    isDraggingSquare = false;
   }
 
   function isPickerOpen() {

@@ -1472,16 +1472,18 @@ input {
   outline: 2px solid var(--accent);
 }
 
-/* ============ In-App Color Picker ============ */
-/* Replaces native <input type="color"> for iOS Safari compatibility */
+/* ============ In-App Color Picker (Wheel) ============ */
+/* Hue ring + saturation/brightness square, presets, recents */
 .color-picker {
   position: fixed;
   z-index: 1000;
   background: var(--surface);
   border: 1px solid var(--line);
-  padding: 12px;
-  min-width: 220px;
-  max-width: 280px;
+  padding: 14px;
+  width: 240px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
   display: none;
 }
 
@@ -1490,14 +1492,157 @@ input {
 }
 
 .cp-header {
+  margin-bottom: 12px;
+}
+
+/* Hue ring container */
+.cp-wheel-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.cp-ring {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, 
+    hsl(0, 100%, 50%),
+    hsl(60, 100%, 50%),
+    hsl(120, 100%, 50%),
+    hsl(180, 100%, 50%),
+    hsl(240, 100%, 50%),
+    hsl(300, 100%, 50%),
+    hsl(360, 100%, 50%)
+  );
+  cursor: pointer;
+  touch-action: none;
+}
+
+.cp-ring:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.cp-ring-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--ink), 0 2px 4px rgba(0,0,0,0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.cp-ring-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 3px solid var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  pointer-events: none;
+}
+
+/* Saturation/Brightness square */
+.cp-square-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.cp-square {
+  display: block;
+  width: 100%;
+  height: 120px;
+  border: 1px solid var(--line);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.cp-square:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.cp-square-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--ink), 0 1px 3px rgba(0,0,0,0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Preview and hex input */
+.cp-preview-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: stretch;
+}
+
+.cp-preview {
+  width: 48px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.cp-hex {
+  flex: 1;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 8px 10px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  text-transform: uppercase;
+  box-sizing: border-box;
+}
+
+.cp-hex:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* Section labels */
+.cp-section-label {
+  margin-bottom: 6px;
+  margin-top: 4px;
+}
+
+/* Recents row */
+.cp-recents {
   margin-bottom: 8px;
 }
 
-/* Swatch grid: 5 columns */
+.cp-recents-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cp-recents-row .cp-swatch {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  flex: 0 0 40px;
+}
+
+/* Swatch grid */
 .cp-swatches {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(5, minmax(40px, 1fr));
+  gap: 3px;
   margin-bottom: 12px;
 }
 
@@ -1514,7 +1659,8 @@ input {
 
 .cp-swatch:focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  outline-offset: 1px;
+  z-index: 1;
 }
 
 .cp-swatch.active::after {
@@ -1524,7 +1670,7 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 12px;
   color: var(--ink);
 }
 
@@ -1532,108 +1678,12 @@ input {
   color: var(--a0);
 }
 
-/* HSL Sliders */
-.cp-sliders {
+/* Print note */
+.cp-note {
+  font-size: 11px;
+  color: var(--ink-muted);
   margin-bottom: 12px;
-}
-
-.cp-slider-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.cp-slider-row .micro-label {
-  width: 70px;
-  flex-shrink: 0;
-}
-
-.cp-range {
-  flex: 1;
-  height: 24px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-/* Hue slider - rainbow gradient */
-.cp-hue {
-  --track-bg: linear-gradient(to right, 
-    hsl(0, 100%, 50%), 
-    hsl(60, 100%, 50%), 
-    hsl(120, 100%, 50%), 
-    hsl(180, 100%, 50%), 
-    hsl(240, 100%, 50%), 
-    hsl(300, 100%, 50%), 
-    hsl(360, 100%, 50%));
-}
-
-.cp-sat, .cp-lit {
-  --track-bg: linear-gradient(to right, #888, #f00);
-}
-
-.cp-range::-webkit-slider-runnable-track {
-  height: 12px;
-  background: var(--track-bg);
-  border: 1px solid var(--line);
-}
-
-.cp-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 24px;
-  background: var(--surface);
-  border: 2px solid var(--ink);
-  margin-top: -7px;
-  cursor: grab;
-}
-
-.cp-range::-moz-range-track {
-  height: 12px;
-  background: var(--track-bg);
-  border: 1px solid var(--line);
-}
-
-.cp-range::-moz-range-thumb {
-  width: 12px;
-  height: 20px;
-  background: var(--surface);
-  border: 2px solid var(--ink);
-  border-radius: 0;
-  cursor: grab;
-}
-
-/* Preview and hex input row */
-.cp-preview-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  align-items: stretch;
-}
-
-.cp-preview {
-  width: 48px;
-  height: 36px;
-  border: 1px solid var(--line);
-  flex-shrink: 0;
-}
-
-.cp-hex {
-  flex: 1;
-  font-family: monospace;
-  font-size: 14px;
-  padding: 6px 8px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  text-transform: uppercase;
-}
-
-.cp-hex:focus {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
+  line-height: 1.3;
 }
 
 /* Actions */
@@ -1645,12 +1695,13 @@ input {
 
 .cp-actions .btn {
   min-width: 70px;
+  min-height: 40px;
 }
 
-/* Inspector color button (replaces native input) */
+/* Inspector color button */
 .insp-color-btn {
-  width: 32px;
-  height: 24px;
+  width: 40px;
+  height: 36px;
   border: 1px solid var(--line);
   cursor: pointer;
   padding: 0;
@@ -1660,4 +1711,64 @@ input {
 .insp-color-btn:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* Responsive: smaller ring on narrow viewports */
+@media (max-width: 520px) {
+  .color-picker {
+    width: calc(100vw - 24px);
+    padding: 10px;
+    max-height: calc(100vh - 80px);
+  }
+  
+  .cp-header {
+    margin-bottom: 8px;
+  }
+  
+  .cp-ring {
+    width: 140px;
+    height: 140px;
+  }
+  
+  .cp-ring-center {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .cp-wheel-wrap {
+    margin-bottom: 8px;
+  }
+  
+  .cp-square {
+    height: 80px;
+  }
+  
+  .cp-square-wrap {
+    margin-bottom: 8px;
+  }
+  
+  .cp-swatches {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+  
+  .cp-swatch {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  
+  .cp-recents {
+    margin-bottom: 6px;
+  }
+  
+  .cp-note {
+    margin-bottom: 8px;
+    font-size: 10px;
+  }
+  
+  .cp-section-label {
+    margin-bottom: 4px;
+    margin-top: 2px;
+  }
 }
