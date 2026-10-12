@@ -295,10 +295,10 @@
     // ===== Layer order buttons with icons =====
     html += '<div class="insp-section">';
     html += '<div class="insp-order">';
-    html += '<button data-act="front" aria-label="Move to front" title="Move to front">' + BL.icon('chevrons-up') + '</button>';
-    html += '<button data-act="forward" aria-label="Bring forward" title="Bring forward">' + BL.icon('arrow-up') + '</button>';
-    html += '<button data-act="back" aria-label="Send backward" title="Send backward">' + BL.icon('arrow-down') + '</button>';
-    html += '<button data-act="bottom" aria-label="Send to back" title="Send to back">' + BL.icon('chevrons-down') + '</button>';
+    html += '<button data-act="front" aria-label="Move to front" title="Move to front">' + BL.icon('chevrons-up', {size: 18}) + '</button>';
+    html += '<button data-act="forward" aria-label="Bring forward" title="Bring forward">' + BL.icon('arrow-up', {size: 18}) + '</button>';
+    html += '<button data-act="back" aria-label="Send backward" title="Send backward">' + BL.icon('arrow-down', {size: 18}) + '</button>';
+    html += '<button data-act="bottom" aria-label="Send to back" title="Send to back">' + BL.icon('chevrons-down', {size: 18}) + '</button>';
     html += '</div>';
     html += '</div>';
     

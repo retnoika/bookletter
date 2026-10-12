@@ -96,3 +96,21 @@ For 16 or 24-page booklets, after folding each sheet:
 7. Stitch or staple through all layers along the spine
 
 This is saddle-stitch binding. Reading order runs straight through: 1, 2, 3, ... all the way to the last page.
+
+## Development
+
+### Testing tools
+
+**Fold verification** — checks that imposition tables produce correct reading order:
+```bash
+node tools/fold-check.js              # 8 pages (default)
+node tools/fold-check.js --pages=16   # 16 pages
+node tools/fold-check.js --pages=24   # 24 pages
+```
+
+**Icon verification** — checks that all `BL.icon()` calls have matching icon definitions:
+```bash
+node tools/icon-check.js
+```
+
+Both tools exit 0 on success, 1 on failure.
