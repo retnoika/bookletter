@@ -1,3 +1,12 @@
+/* ============ Font Faces ============ */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/Fraunces-Regular.woff2') format('woff2');
+}
+
 /**
  * Bookletter — app styles
  * Editorial UI matching the mini-zine-maker reference.
@@ -36,7 +45,7 @@
   --line-strong: var(--a70);               /* emphasised rules, inactive edges */
   --accent: var(--candy-pink-750);         /* primary buttons, active states, serif headlines */
   --accent-hover: var(--candy-pink-500);   /* hover state for accent buttons */
-  --accent-on: var(--a800);                /* text ON accent bg (4.62:1 contrast, AA) */
+  --accent-on: #FFFFFF;                    /* text ON accent bg (white on Candy Pink 750) */
   --accent-tint-wash: var(--candy-pink-50);  /* alert/notice panel background */
   --accent-tint-rule: var(--candy-pink-250); /* alert/notice panel rule */
   --guide: var(--cornflower-blue-500);     /* fold lines, snap guides, margin guide */
@@ -54,8 +63,8 @@
   --ph: 210;
   
   /* -------- Typography - UI only -------- */
-  --f-serif: 'Instrument Serif', Georgia, serif;
-  --f-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --f-serif: 'Fraunces', Georgia, serif;
+  --f-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   
   /* Page content fonts (deterministic print) */
   --f-ui: system-ui, -apple-system, sans-serif;
@@ -125,6 +134,15 @@ input {
 }
 
 .header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
 }
 
@@ -132,12 +150,6 @@ input {
   font: 20px var(--f-serif);
   color: var(--ink);
   line-height: 1.1;
-}
-
-.brand-tagline {
-  font: italic 11px var(--f-serif);
-  color: var(--ink-muted);
-  margin-top: 1px;
 }
 
 .header-title {
@@ -173,7 +185,7 @@ input {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   padding: 8px 12px;
   border: none;
@@ -261,8 +273,14 @@ input {
   min-width: 28px;
 }
 
-.btn-split-caret .dropdown-caret {
-  font-size: 10px;
+.btn-split-caret .dropdown-caret,
+.btn-split-caret .icon {
+  opacity: 0.8;
+}
+
+.dropdown-caret-icon {
+  margin-left: 2px;
+  opacity: 0.6;
 }
 
 /* ============ Main Three-Rail Layout ============ */
@@ -345,7 +363,7 @@ input {
 
 /* ============ Buttons ============ */
 .btn-s {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   padding: 10px 14px;
   border: var(--border-w) solid var(--line-strong);
@@ -362,7 +380,7 @@ input {
 }
 
 .btn-primary {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   padding: 10px 18px;
   background: var(--accent);
@@ -416,9 +434,14 @@ input {
   gap: 6px;
 }
 
-.btn-icon-glyph {
-  font-size: 14px;
-  opacity: 0.7;
+/* Inline SVG icons */
+.icon {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.btn-icon .icon {
+  opacity: 0.8;
 }
 
 /* ============ Chips ============ */
@@ -455,7 +478,7 @@ input {
 
 .seg button {
   padding: 8px 14px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   background: var(--surface);
   color: var(--ink-muted);
@@ -924,7 +947,7 @@ input {
 }
 
 #inspector button {
-  font-size: 10px;
+  font-size: 12px;
   padding: 6px 10px;
   border: var(--border-w) solid var(--line);
   background: var(--surface);

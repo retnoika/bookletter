@@ -4,9 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bookletter</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="assets/bookletter-icon.png">
   <link rel="stylesheet" href="css/app.css">
   <style id="pageStyle"></style>
 </head>
@@ -15,24 +13,25 @@
     <!-- Header bar -->
     <header class="header">
       <div class="header-brand">
+        <img src="assets/bookletter-icon.png" alt="" class="brand-icon" width="28" height="28">
         <div class="brand-name">Bookletter</div>
-        <div class="brand-tagline">A5 booklets from A3 sheets.</div>
       </div>
       
       <span class="header-status" id="saved"></span>
       
       <div class="header-actions">
         <!-- Preview button -->
-        <button class="btn-preview" id="bPreview" aria-label="Preview sheets">
-          <span class="preview-icon">◫</span>
+        <button class="btn-preview btn-icon" id="bPreview" aria-label="Preview sheets">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.67 8a1.33 1.33 0 1 0 2.66 0a1.33 1.33 0 0 0 -2.66 0"/><path d="M14 8c-1.6 2.67 -3.6 4 -6 4c-2.4 0 -4.4 -1.33 -6 -4c1.6 -2.67 3.6 -4 6 -4c2.4 0 4.4 1.33 6 4"/></svg>
           <span>Preview</span>
         </button>
         
         <!-- Options dropdown -->
         <div class="dropdown" id="optionsDropdown">
-          <button class="btn-s dropdown-trigger" id="bOptions" aria-haspopup="true" aria-expanded="false">
-            Options
-            <span class="dropdown-caret">▾</span>
+          <button class="btn-s btn-icon dropdown-trigger" id="bOptions" aria-haspopup="true" aria-expanded="false">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9.33 5.33h5.34"/><path d="M1.33 5.33h2.67"/><path d="M12 10.67h2.67"/><path d="M1.33 10.67h5.34"/><circle cx="6" cy="5.33" r="1.33"/><circle cx="10" cy="10.67" r="1.33"/></svg>
+            <span>Options</span>
+            <svg class="icon dropdown-caret-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 6l4 4l4 -4"/></svg>
           </button>
           <div class="dropdown-menu" role="menu" hidden>
             <button class="dropdown-item" data-action="open" role="menuitem">Open project…</button>
@@ -44,9 +43,12 @@
         <!-- Save dropdown (split button) -->
         <div class="dropdown dropdown-save" id="saveDropdown">
           <div class="btn-split">
-            <button class="btn-primary btn-split-main" id="bPrint">Save as PDF</button>
+            <button class="btn-primary btn-split-main btn-icon" id="bPrint">
+              <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.67 10.67v1.33a2 2 0 0 0 2 2h6.66a2 2 0 0 0 2 -2v-1.33"/><path d="M8 2.67v8"/><path d="M5.33 8l2.67 2.67l2.67 -2.67"/></svg>
+              <span>Save as PDF</span>
+            </button>
             <button class="btn-primary btn-split-caret" id="bSaveCaret" aria-haspopup="true" aria-expanded="false" aria-label="More save options">
-              <span class="dropdown-caret">▾</span>
+              <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 6l4 4l4 -4"/></svg>
             </button>
           </div>
           <div class="dropdown-menu dropdown-menu-right" role="menu" id="saveMenu" hidden>
@@ -230,6 +232,7 @@
   <!-- Scripts (classic, no modules for file:// support) -->
   <script src="js/imposition.js"></script>
   <script src="js/00-state.js"></script>
+  <script src="js/05-icons.js"></script>
   <script src="js/10-templates.js"></script>
   <script src="js/20-render.js"></script>
   <script src="js/30-editor.js"></script>
