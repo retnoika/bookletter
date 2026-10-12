@@ -798,15 +798,6 @@
         BL.save();
       });
     }
-    
-    // Print button (Save as PDF)
-    var bPrint = document.getElementById('bPrint');
-    if (bPrint) {
-      bPrint.addEventListener('click', function() {
-        if (BL.doPrint) BL.doPrint();
-      });
-    }
-    
     // Setup dropdowns
     setupDropdowns();
   }

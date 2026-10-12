@@ -303,16 +303,25 @@
 
     buildPrintArea();
 
-    // Wait for images to decode
+    // Safari requires window.print() to be called synchronously within the
+    // user gesture task. Check if all images are already decoded/complete.
     var images = document.querySelectorAll('#printArea img');
-    var decodePromises = [];
-    images.forEach(function(img) {
-      decodePromises.push(img.decode().catch(function() {}));
-    });
+    var allComplete = true;
+    for (var i = 0; i < images.length; i++) {
+      if (!images[i].complete) {
+        allComplete = false;
+        break;
+      }
+    }
 
-    Promise.all(decodePromises).then(function() {
+    if (allComplete) {
+      // All images ready - print synchronously (required for Safari)
       window.print();
-    });
+    } else {
+      // Some images not yet decoded - print anyway (better than dead button)
+      // Safari may show incomplete images but at least the dialog opens
+      window.print();
+    }
   }
 
   // ============ beforeprint handler ============
