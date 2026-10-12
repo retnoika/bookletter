@@ -118,7 +118,7 @@
         return function() {
           BL.cur = idx;
           BL.sel = null;
-          viewMode = 'page';
+          // Do NOT reset viewMode - preserve spread/page mode
           renderAll();
         };
       })(i));
