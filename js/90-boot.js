@@ -326,6 +326,11 @@
     var layouts = document.getElementById('layouts');
     if (!layouts) return;
     
+    // Set page dimensions for tile aspect ratio
+    var dims = BL.pageDims();
+    layouts.style.setProperty('--pw', dims[0]);
+    layouts.style.setProperty('--ph', dims[1]);
+    
     layouts.innerHTML = '';
     
     for (var i = 0; i < BL.TEMPLATE_ORDER.length; i++) {

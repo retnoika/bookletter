@@ -644,30 +644,29 @@ input {
   color: var(--ink-muted);
 }
 
-/* ============ Layouts Horizontal Scroll ============ */
+/* ============ Layouts Grid ============ */
 .layouts-scroll {
-  overflow-x: auto;
-  overflow-y: hidden;
+  /* No scrolling - tiles wrap onto multiple rows */
   margin: 0 -20px;
   padding: 0 20px;
 }
 
 .layouts {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
   gap: 6px;
-  padding-bottom: 4px;
 }
 
 .layouts .lay {
-  flex-shrink: 0;
-  width: 56px;
-  height: 80px;
+  /* Aspect ratio from page orientation via CSS vars */
+  aspect-ratio: var(--pw, 148) / var(--ph, 210);
   border: var(--border-w) solid var(--line);
   background: var(--surface);
   padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0; /* Allow grid to shrink tiles */
 }
 
 .layouts .lay:hover {
@@ -683,7 +682,7 @@ input {
 .ico {
   display: block;
   width: 100%;
-  aspect-ratio: 148 / 210;
+  aspect-ratio: var(--pw, 148) / var(--ph, 210);
   position: relative;
 }
 
@@ -708,7 +707,6 @@ input {
   background: var(--line);
   opacity: 0.6;
 }
-
 /* ============ Add Layer Buttons ============ */
 .add-btns {
   display: flex;
