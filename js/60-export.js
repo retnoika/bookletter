@@ -384,17 +384,20 @@
   // ============ Safety checks ============
   function runSafetyChecks() {
     var findings = [];
-    var safe = BL.S.safe || 8;
     var dims = BL.pageDims();
     var pw = dims[0], ph = dims[1];
 
     for (var p = 0; p < BL.S.pages.length; p++) {
       var page = BL.S.pages[p];
+      
+      // Get page-specific safe bands
+      var bands = BL.pageSafeBands(p, BL.S.pages.length, BL.S.orient, BL.S.sheet, BL.S.safe);
+      
       for (var i = 0; i < page.layers.length; i++) {
         var layer = page.layers[i];
 
-        // Check margin crossing
-        var marginCrossings = checkMarginCrossing(layer, safe, pw, ph);
+        // Check margin crossing (only on unsafe sides)
+        var marginCrossings = checkMarginCrossing(layer, bands, pw, ph);
         if (marginCrossings.length > 0) {
           findings.push({
             type: 'margin',
@@ -423,24 +426,25 @@
     return findings;
   }
 
-  function checkMarginCrossing(layer, safe, pw, ph) {
+  function checkMarginCrossing(layer, bands, pw, ph) {
     var crossings = [];
     var tolerance = 0.1; // mm tolerance to avoid flagging layers exactly on the line
 
     // Account for rotation - use bounding box
     var bounds = getLayerBounds(layer);
 
-    if (bounds.left < safe - tolerance) {
-      crossings.push({ edge: 'left', amount: safe - bounds.left });
+    // Only check sides that have non-zero bands (unsafe sides)
+    if (bands.left > 0 && bounds.left < bands.left - tolerance) {
+      crossings.push({ edge: 'left', amount: bands.left - bounds.left });
     }
-    if (bounds.top < safe - tolerance) {
-      crossings.push({ edge: 'top', amount: safe - bounds.top });
+    if (bands.top > 0 && bounds.top < bands.top - tolerance) {
+      crossings.push({ edge: 'top', amount: bands.top - bounds.top });
     }
-    if (bounds.right > pw - safe + tolerance) {
-      crossings.push({ edge: 'right', amount: bounds.right - (pw - safe) });
+    if (bands.right > 0 && bounds.right > pw - bands.right + tolerance) {
+      crossings.push({ edge: 'right', amount: bounds.right - (pw - bands.right) });
     }
-    if (bounds.bottom > ph - safe + tolerance) {
-      crossings.push({ edge: 'bottom', amount: bounds.bottom - (ph - safe) });
+    if (bands.bottom > 0 && bounds.bottom > ph - bands.bottom + tolerance) {
+      crossings.push({ edge: 'bottom', amount: bounds.bottom - (ph - bands.bottom) });
     }
 
     return crossings;

@@ -121,10 +121,30 @@
       if (layerEl) pg.appendChild(layerEl);
     }
 
-    // Margin guide
-    if (isEdit && BL.S.guide) {
-      var guide = el('div', 'guide');
-      pg.appendChild(guide);
+    // Safe-area guide (two sides only based on imposition)
+    if (isEdit && BL.S.guide && BL.pageSafeBands) {
+      var bands = BL.pageSafeBands(pageIdx, BL.S.pages.length, BL.S.orient, BL.S.sheet, BL.S.safe);
+      // Draw lines only on unsafe sides with non-zero bands
+      if (bands.top > 0) {
+        var lineTop = el('div', 'guide guide-top');
+        lineTop.style.setProperty('--band', bands.top);
+        pg.appendChild(lineTop);
+      }
+      if (bands.right > 0) {
+        var lineRight = el('div', 'guide guide-right');
+        lineRight.style.setProperty('--band', bands.right);
+        pg.appendChild(lineRight);
+      }
+      if (bands.bottom > 0) {
+        var lineBottom = el('div', 'guide guide-bottom');
+        lineBottom.style.setProperty('--band', bands.bottom);
+        pg.appendChild(lineBottom);
+      }
+      if (bands.left > 0) {
+        var lineLeft = el('div', 'guide guide-left');
+        lineLeft.style.setProperty('--band', bands.left);
+        pg.appendChild(lineLeft);
+      }
     }
 
     // Page number (only for interior pages 2-7)

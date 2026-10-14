@@ -21,7 +21,7 @@
  */
 
 const imposition = require('../js/imposition.js');
-const { computeImposition, getSheetReadingOrder, getBookletReadingOrder, verifyReadingOrder, BASE_IMPOSITION } = imposition;
+const { computeImposition, getSheetReadingOrder, getBookletReadingOrder, verifyReadingOrder, BASE_IMPOSITION, pageSafeBands } = imposition;
 
 const VALID_PAGE_COUNTS = [8, 16, 24];
 const VALID_ORIENTATIONS = ['portrait', 'landscape'];
@@ -308,6 +308,74 @@ function verify(pageCount, orient) {
     allPassed = false;
   } else {
     console.log(`Page ${pageCount} at correct position (sheet ${sheetCount}, side 1, bottom-left) v`);
+  }
+  
+  // ====== Safe Bands Check ======
+  console.log('--- Safe Bands Check ---');
+  
+  // Expected unsafe sides per page (derived from imposition)
+  // Page 1: bottom-right (row 1, col 1)
+  // Page 2: bottom-left (row 1, col 0)
+  // etc.
+  const expectedUnsafeSides = {
+    1: ['bottom', 'right'],
+    2: ['bottom', 'left'],
+    3: ['top', 'left'],
+    4: ['top', 'right'],
+    5: ['top', 'left'],
+    6: ['top', 'right'],
+    7: ['bottom', 'right'],
+    8: ['bottom', 'left']
+  };
+  
+  // Test with safe = 6mm on A3
+  const testSafe = 6;
+  console.log(`  Testing with safe=${testSafe}mm on A3 ${orient}:`);
+  
+  for (let p = 0; p < Math.min(pageCount, 8); p++) {
+    const bands = pageSafeBands(p, pageCount, orient, 'A3', testSafe);
+    const pageNum = p + 1;
+    const expected = expectedUnsafeSides[pageNum] || expectedUnsafeSides[((pageNum - 1) % 8) + 1];
+    const actual = bands.unsafeSides.sort();
+    const expectedSorted = expected.sort();
+    
+    const match = JSON.stringify(actual) === JSON.stringify(expectedSorted);
+    if (!match) {
+      console.log(`    Page ${pageNum}: FAIL - expected [${expectedSorted}], got [${actual}]`);
+      allPassed = false;
+    } else {
+      // Verify band widths
+      const geo = GEOMETRY[orient];
+      const spareX = (geo.sheet.A3.w - 2 * geo.page.w) / 2;
+      const spareY = (geo.sheet.A3.h - 2 * geo.page.h) / 2;
+      const expectedBandH = Math.max(0, testSafe - spareY);
+      const expectedBandV = Math.max(0, testSafe - spareX);
+      
+      // Check that bands match expected
+      const bandOk = 
+        (bands.top === 0 || Math.abs(bands.top - expectedBandH) < 0.01) &&
+        (bands.bottom === 0 || Math.abs(bands.bottom - expectedBandH) < 0.01) &&
+        (bands.left === 0 || Math.abs(bands.left - expectedBandV) < 0.01) &&
+        (bands.right === 0 || Math.abs(bands.right - expectedBandV) < 0.01);
+      
+      if (!bandOk) {
+        console.log(`    Page ${pageNum}: FAIL - band widths incorrect`);
+        allPassed = false;
+      } else {
+        console.log(`    Page ${pageNum}: [${actual}] v (bands: ${bands.top}/${bands.right}/${bands.bottom}/${bands.left}mm)`);
+      }
+    }
+  }
+  
+  // Test SRA3 with safe = 3mm (should give zero bands)
+  console.log(`  Testing SRA3 with safe=3mm (expect zero bands):`);
+  const sra3Bands = pageSafeBands(0, pageCount, orient, 'SRA3', 3);
+  const allZero = sra3Bands.top === 0 && sra3Bands.right === 0 && sra3Bands.bottom === 0 && sra3Bands.left === 0;
+  if (allZero) {
+    console.log(`    SRA3: All bands zero v (spare: ${sra3Bands.spareX.toFixed(1)}mm x ${sra3Bands.spareY.toFixed(1)}mm)`);
+  } else {
+    console.log(`    SRA3: FAIL - expected zero bands, got ${sra3Bands.top}/${sra3Bands.right}/${sra3Bands.bottom}/${sra3Bands.left}mm`);
+    allPassed = false;
   }
   
   console.log('');

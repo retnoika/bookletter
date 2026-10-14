@@ -146,11 +146,108 @@
     return null;
   }
 
+  /**
+   * Get the safe-area bands for a page based on its position in the imposition.
+   * 
+   * Each page has exactly 2 unsafe sides (those touching the sheet edge).
+   * The band width = max(0, safeMargin - spare) where spare is the gap between
+   * the 2x2 cell block and the sheet edge.
+   * 
+   * @param {number} pageIdx - 0-based page index
+   * @param {number} pageCount - Total pages (8, 16, 24)
+   * @param {string} orient - 'portrait' or 'landscape'
+   * @param {string} sheet - 'A3' or 'SRA3'
+   * @param {number} safe - Printer margin in mm
+   * @returns {Object} { top, right, bottom, left } - band width in mm for each side (0 if fold side)
+   */
+  function pageSafeBands(pageIdx, pageCount, orient, sheet, safe) {
+    var page = pageIdx + 1; // 1-based page number
+    
+    // Determine which sheet (1-based) and find page position
+    var sheetIdx = Math.ceil(page / 8);
+    var imp = computeImposition(sheetIdx, pageCount);
+    
+    // Find page in the imposition table
+    var row = -1, col = -1, side = null;
+    
+    // Search side 1
+    for (var r = 0; r < 2; r++) {
+      for (var c = 0; c < 2; c++) {
+        if (imp.side1[r][c] === page) {
+          row = r; col = c; side = 1;
+          break;
+        }
+      }
+      if (side) break;
+    }
+    
+    // Search side 2 if not found
+    if (!side) {
+      for (var r = 0; r < 2; r++) {
+        for (var c = 0; c < 2; c++) {
+          if (imp.side2[r][c] === page) {
+            row = r; col = c; side = 2;
+            break;
+          }
+        }
+        if (side) break;
+      }
+    }
+    
+    if (row === -1) {
+      // Page not found (shouldn't happen)
+      return { top: 0, right: 0, bottom: 0, left: 0, unsafeSides: [] };
+    }
+    
+    // Determine unsafe sides based on cell position
+    // col 0 -> left edge on sheet; col 1 -> right edge on sheet
+    // row 0 -> top edge on sheet; row 1 -> bottom edge on sheet
+    var unsafeTop = (row === 0);
+    var unsafeBottom = (row === 1);
+    var unsafeLeft = (col === 0);
+    var unsafeRight = (col === 1);
+    
+    // Get page and sheet dimensions
+    var SHEETS = { A3: [297, 420], SRA3: [320, 450] };
+    var PAGE_P = [148, 210], PAGE_L = [210, 148];
+    
+    var pageDims = orient === 'portrait' ? PAGE_P : PAGE_L;
+    var sheetDims = orient === 'portrait' ? SHEETS[sheet] : [SHEETS[sheet][1], SHEETS[sheet][0]];
+    
+    var pw = pageDims[0], ph = pageDims[1];
+    var sw = sheetDims[0], sh = sheetDims[1];
+    
+    // Calculate spare margins
+    var spareX = (sw - 2 * pw) / 2;
+    var spareY = (sh - 2 * ph) / 2;
+    
+    // Band width = max(0, safe - spare)
+    var bandH = Math.max(0, safe - spareY); // top/bottom bands
+    var bandV = Math.max(0, safe - spareX); // left/right bands
+    
+    var unsafeSides = [];
+    if (unsafeTop) unsafeSides.push('top');
+    if (unsafeRight) unsafeSides.push('right');
+    if (unsafeBottom) unsafeSides.push('bottom');
+    if (unsafeLeft) unsafeSides.push('left');
+    
+    return {
+      top: unsafeTop ? bandH : 0,
+      right: unsafeRight ? bandV : 0,
+      bottom: unsafeBottom ? bandH : 0,
+      left: unsafeLeft ? bandV : 0,
+      unsafeSides: unsafeSides,
+      spareX: spareX,
+      spareY: spareY
+    };
+  }
+
   // Export for browser (window.BL) and Node (module.exports)
   exports.BASE_IMPOSITION = BASE_IMPOSITION;
   exports.computeImposition = computeImposition;
   exports.getSheetReadingOrder = getSheetReadingOrder;
   exports.getBookletReadingOrder = getBookletReadingOrder;
   exports.verifyReadingOrder = verifyReadingOrder;
+  exports.pageSafeBands = pageSafeBands;
 
 })(typeof module !== 'undefined' && module.exports ? module.exports : (window.BL = window.BL || {}));

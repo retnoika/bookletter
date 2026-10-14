@@ -1664,42 +1664,46 @@ input {
   color: var(--ink-muted);
 }
 
-/* Safe margin guide - shared */
+/* Safe margin guide - individual lines per unsafe side */
 .guide {
   position: absolute;
-  inset: calc(var(--mm) * var(--safe, 8));
   pointer-events: none;
+  border: none;
 }
 
-/* Page number - shared */
-.pn {
-  position: absolute;
-  bottom: calc(var(--mm) * 3.2);
-  left: 50%;
-  transform: translateX(-50%);
-  font: calc(var(--mm) * 3) var(--f-ui);
-  color: var(--ink);
-  opacity: 0.6;
-  pointer-events: none;
+.guide-top {
+  top: calc(var(--mm) * var(--band, 0));
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed var(--guide);
+  opacity: 0.4;
 }
 
-/* ============ Editor Page (decoration only) ============ */
-#editorPage {
-  position: relative;
-  background: var(--paper);
+.guide-right {
+  top: 0;
+  right: calc(var(--mm) * var(--band, 0));
+  bottom: 0;
+  width: 0;
+  border-right: 1px dashed var(--guide);
+  opacity: 0.4;
 }
 
-#editorPage .layer {
-  cursor: move;
+.guide-bottom {
+  bottom: calc(var(--mm) * var(--band, 0));
+  left: 0;
+  right: 0;
+  height: 0;
+  border-bottom: 1px dashed var(--guide);
+  opacity: 0.4;
 }
 
-#editorPage .layer.sel {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-#editorPage .guide {
-  border: 1px dashed var(--guide);
+.guide-left {
+  top: 0;
+  left: calc(var(--mm) * var(--band, 0));
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed var(--guide);
   opacity: 0.4;
 }
 
