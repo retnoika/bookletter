@@ -19,8 +19,8 @@ Thank you for supporting my work on Bookletter.
 
 1. **Choose size**: Select 8, 16, or 24 pages (1, 2, or 3 A3 sheets)
 2. **Choose orientation**: Portrait A5 (148 × 210 mm) or Landscape A5 (210 × 148 mm)
-3. **Use layout templates**: Click one of the layout icons to add photo and text frames to the current page
-4. **Add images**: Click a photo frame to choose an image, or drag and drop images onto the page
+3. **Use layout templates**: Click one of the layout icons to add image and text frames to the current page
+4. **Add images**: Click an image frame to choose an image, or drag and drop images onto the page
 5. **Add text**: Double-click a text layer to edit it inline; press Escape to finish
 6. **Add shapes**: Use the Shape button to add decorative elements
 7. **Set backgrounds**: Choose from preset colors or pick a custom color
@@ -73,7 +73,7 @@ When SRA3 stock is selected, the PNGs include crop marks at the corners and fold
 The **Print safety** panel in the editor checks your design for common print problems:
 
 - Layers that cross the safe margin (reports how far, in mm)
-- Photos placed larger than their resolution allows (reports effective dpi)
+- Images placed larger than their resolution allows (reports effective dpi)
 - Shape strokes thinner than 0.25 mm
 
 When everything is fine, the panel says "No print-safety issues found."

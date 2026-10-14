@@ -75,7 +75,7 @@
           return name;
         }
       }
-      return 'Photo ' + (index + 1);
+      return 'Image ' + (index + 1);
     }
     return 'Layer ' + (index + 1);
   }
@@ -143,7 +143,7 @@
     for (var i = layers.length - 1; i >= 0; i--) {
       var layer = layers[i];
       var name = getLayerName(layer, i);
-      var typeLabel = layer.kind === 'photo' ? 'Photo' : 'Text';
+      var typeLabel = layer.kind === 'photo' ? 'Image' : 'Text';
       var selected = layer.id === BL.sel ? ' selected' : '';
       
       html += '<div class="layer-row' + selected + '" data-id="' + layer.id + '" data-index="' + i + '" tabindex="0">';
@@ -627,7 +627,7 @@
     var layer = BL.findLayer(BL.sel);
     if (!layer) {
       if (labelEl) labelEl.textContent = 'SELECTED PAGE';
-      if (titleEl) titleEl.innerHTML = 'Add a photo';
+      if (titleEl) titleEl.innerHTML = 'Add an image';
       box.innerHTML = '<p class="hint" style="margin:0">Click a layer on the page to edit it.</p>';
       return;
     }
@@ -636,7 +636,7 @@
     if (labelEl) labelEl.textContent = 'SELECTED LAYER';
     if (titleEl) {
       if (layer.kind === 'photo') {
-        titleEl.innerHTML = layer.src ? 'Photo layer' : 'Empty photo';
+        titleEl.innerHTML = layer.src ? 'Image layer' : 'Empty image';
       } else if (layer.kind === 'text') {
         titleEl.innerHTML = 'Text layer';
       } else {

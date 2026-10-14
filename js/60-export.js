@@ -538,7 +538,7 @@
         }).join(', ');
         html += '<li class="check-warn">Page ' + f.page + ' ' + f.kind + ' crosses safe margin: ' + crossDesc + '</li>';
       } else if (f.type === 'resolution') {
-        html += '<li class="check-warn">Page ' + f.page + ' photo at ' + f.dpi + ' dpi (placed ' + f.width.toFixed(0) + '×' + f.height.toFixed(0) + 'mm)</li>';
+        html += '<li class="check-warn">Page ' + f.page + ' image at ' + f.dpi + ' dpi (placed ' + f.width.toFixed(0) + '×' + f.height.toFixed(0) + 'mm)</li>';
       }
     });
     html += '</ul>';
