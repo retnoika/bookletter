@@ -232,7 +232,7 @@
 
     var lines = [];
     lines.push('Print on ' + stockName + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + ' like a book page.');
-    lines.push('Scale 100%, margins none, background graphics on.');
+    lines.push('In the print dialog choose ' + stockName + ' paper size, 100% scale (Actual size, not Fit), margins none.');
 
     if (stockName === 'A3') {
       lines.push('A3 has no room for crop or fold marks—the pages fit exactly.');
@@ -278,11 +278,21 @@
     if (!printArea) return;
 
     // Set @page size dynamically
-    var sheet = BL.sheetDims();
-    var sw = sheet[0], sh = sheet[1];
+    // Use named sizes for A3 (better browser support) and explicit for SRA3
+    var orient = BL.S.orient;
+    var stock = BL.S.sheet;
     var pageStyle = document.getElementById('pageStyle');
     if (pageStyle) {
-      pageStyle.textContent = '@page { size: ' + sw + 'mm ' + sh + 'mm; margin: 0; }';
+      var sizeRule;
+      if (stock === 'A3') {
+        // Named size with orientation - more widely supported
+        sizeRule = 'A3 ' + orient;
+      } else {
+        // SRA3 has no CSS named size, use explicit dimensions
+        var sheet = BL.sheetDims();
+        sizeRule = sheet[0] + 'mm ' + sheet[1] + 'mm';
+      }
+      pageStyle.textContent = '@page { size: ' + sizeRule + '; margin: 0; }';
     }
 
     var sheetCount = BL.S.pages.length / 8;
