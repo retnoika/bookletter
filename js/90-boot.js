@@ -98,7 +98,10 @@
       
       var pg = document.createElement('div');
       pg.className = 'thumb-pg';
+      var dims = BL.pageDims();
       pg.style.setProperty('--mm', '0.5px');
+      pg.style.setProperty('--pw', dims[0]);
+      pg.style.setProperty('--ph', dims[1]);
       pg.appendChild(BL.renderPage(i, {}));
       
       var num = document.createElement('div');

@@ -910,7 +910,7 @@ input {
 
 .strip .thumb-pg {
   width: 100%;
-  aspect-ratio: 148 / 210;
+  aspect-ratio: var(--pw, 148) / var(--ph, 210);
   background: var(--paper);
   border: var(--border-w) solid var(--line);
   position: relative;

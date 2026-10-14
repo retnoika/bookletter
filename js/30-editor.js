@@ -1143,6 +1143,8 @@
     }
     
     editorPage.style.setProperty('--mm', mm + 'px');
+    editorPage.style.setProperty('--pw', pw);
+    editorPage.style.setProperty('--ph', ph);
     
     var cap = document.getElementById('pageCap');
     if (cap) {
@@ -1176,10 +1178,14 @@
     
     // Apply same scale to all spread elements
     editorPage.style.setProperty('--mm', mm + 'px');
+    editorPage.style.setProperty('--pw', pw);
+    editorPage.style.setProperty('--ph', ph);
     
     var partners = stage.querySelectorAll('.spread-partner');
     partners.forEach(function(p) {
       p.style.setProperty('--mm', mm + 'px');
+      p.style.setProperty('--pw', pw);
+      p.style.setProperty('--ph', ph);
     });
     
     // Set blank placeholder size to match page
