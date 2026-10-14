@@ -277,22 +277,13 @@
     var printArea = document.getElementById('printArea');
     if (!printArea) return;
 
-    // Set @page size dynamically
-    // Use named sizes for A3 (better browser support) and explicit for SRA3
-    var orient = BL.S.orient;
-    var stock = BL.S.sheet;
+    // Set @page size dynamically - ALWAYS use explicit mm dimensions.
+    // Named sizes like "A3 landscape" are unreliable in Safari/iOS.
+    var sheet = BL.sheetDims();
+    var sw = sheet[0], sh = sheet[1];
     var pageStyle = document.getElementById('pageStyle');
     if (pageStyle) {
-      var sizeRule;
-      if (stock === 'A3') {
-        // Named size with orientation - more widely supported
-        sizeRule = 'A3 ' + orient;
-      } else {
-        // SRA3 has no CSS named size, use explicit dimensions
-        var sheet = BL.sheetDims();
-        sizeRule = sheet[0] + 'mm ' + sheet[1] + 'mm';
-      }
-      pageStyle.textContent = '@page { size: ' + sizeRule + '; margin: 0; }';
+      pageStyle.textContent = '@page { size: ' + sw + 'mm ' + sh + 'mm; margin: 0; }';
     }
 
     var sheetCount = BL.S.pages.length / 8;
