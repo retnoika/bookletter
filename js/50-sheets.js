@@ -231,7 +231,7 @@
     var stockName = BL.S.sheet;
 
     var lines = [];
-    lines.push('Print on ' + stockName + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + ' like a book page.');
+    lines.push('Print on ' + stockName + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + ' (flip the sheet like a book page—printed side down, left edge goes to the right).');
     lines.push('In the print dialog choose ' + stockName + ' paper size, 100% scale (Actual size, not Fit), margins none.');
 
     if (stockName === 'A3') {
@@ -241,6 +241,7 @@
     }
 
     lines.push('Do a test print on plain paper first with page numbers enabled.');
+    lines.push('If the inside pages come out in the wrong order, your printer\'s duplex flip is going the other way—change the duplex direction and reprint.');
 
     noteEl.innerHTML = lines.join('<br>');
   }
@@ -259,7 +260,7 @@
     var html = 
       '<li><b>1 · Print</b>' + sheetCount + ' × ' + BL.S.sheet + ' ' + BL.S.orient + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + '.</li>' +
       '<li><b>2 · First fold</b>Side 1 facing you, with ' + N + ' | 1 along the bottom. Fold the top half back, behind the sheet.</li>' +
-      '<li><b>3 · Second fold</b>Fold the left half back behind the right half. Page 1 is now the cover and the left fold is the spine.</li>' +
+      '<li><b>3 · Second fold</b>Fold the left half back behind the right half. Page 1 is now the cover and the left fold is the spine. <em>Check: page 1 front cover, page 2 first inside—if not, fix duplex direction before printing more.</em></li>' +
       '<li><b>4 · Slit the top fold</b>Use a craft knife to slit the top edge so the pages open.</li>';
     
     if (sheetCount > 1) {
