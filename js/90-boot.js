@@ -546,6 +546,11 @@
       tNums.classList.toggle('active', BL.S.nums);
     }
     
+    var safeInput = document.getElementById('safeInput');
+    if (safeInput) {
+      safeInput.value = BL.S.safe;
+    }
+    
     // Update page heading
     var toolHead = document.getElementById('toolHead');
     if (toolHead) {
@@ -851,6 +856,27 @@
       tGuide.addEventListener('click', function() {
         BL.S.guide = !BL.S.guide;
         updateTopBar();
+        renderEditor();
+        BL.save();
+      });
+    }
+    
+    // Safe margin input
+    var safeInput = document.getElementById('safeInput');
+    if (safeInput) {
+      safeInput.value = BL.S.safe;
+      safeInput.addEventListener('change', function() {
+        var val = parseFloat(safeInput.value);
+        if (isNaN(val)) {
+          // Invalid input: restore previous value
+          safeInput.value = BL.S.safe;
+          return;
+        }
+        // Clamp to 0-20
+        val = Math.max(0, Math.min(20, val));
+        val = Math.round(val * 10) / 10; // one decimal
+        BL.S.safe = val;
+        safeInput.value = val;
         renderEditor();
         BL.save();
       });

@@ -1145,7 +1145,7 @@
     editorPage.style.setProperty('--mm', mm + 'px');
     editorPage.style.setProperty('--pw', pw);
     editorPage.style.setProperty('--ph', ph);
-    
+    editorPage.style.setProperty('--safe', BL.S.safe);
     var cap = document.getElementById('pageCap');
     if (cap) {
       cap.textContent = 'Page ' + (BL.cur + 1) + ' of ' + BL.S.pages.length + ' · A5 · ' + pw + ' × ' + ph + ' mm';
@@ -1180,7 +1180,7 @@
     editorPage.style.setProperty('--mm', mm + 'px');
     editorPage.style.setProperty('--pw', pw);
     editorPage.style.setProperty('--ph', ph);
-    
+    editorPage.style.setProperty('--safe', BL.S.safe);
     var partners = stage.querySelectorAll('.spread-partner');
     partners.forEach(function(p) {
       p.style.setProperty('--mm', mm + 'px');

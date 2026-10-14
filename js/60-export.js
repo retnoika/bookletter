@@ -425,20 +425,21 @@
 
   function checkMarginCrossing(layer, safe, pw, ph) {
     var crossings = [];
+    var tolerance = 0.1; // mm tolerance to avoid flagging layers exactly on the line
 
     // Account for rotation - use bounding box
     var bounds = getLayerBounds(layer);
 
-    if (bounds.left < safe) {
+    if (bounds.left < safe - tolerance) {
       crossings.push({ edge: 'left', amount: safe - bounds.left });
     }
-    if (bounds.top < safe) {
+    if (bounds.top < safe - tolerance) {
       crossings.push({ edge: 'top', amount: safe - bounds.top });
     }
-    if (bounds.right > pw - safe) {
+    if (bounds.right > pw - safe + tolerance) {
       crossings.push({ edge: 'right', amount: bounds.right - (pw - safe) });
     }
-    if (bounds.bottom > ph - safe) {
+    if (bounds.bottom > ph - safe + tolerance) {
       crossings.push({ edge: 'bottom', amount: bounds.bottom - (ph - safe) });
     }
 
@@ -530,17 +531,44 @@
     panel.classList.remove('no-issues');
     panel.classList.add('has-issues');
 
-    var html = '<ul class="check-list">';
+    // Count margin crossings by kind
+    var textCrossings = 0;
+    var imageCrossings = 0;
+    var resolutionFindings = [];
+    
     findings.forEach(function(f) {
       if (f.type === 'margin') {
-        var crossDesc = f.crossings.map(function(c) {
-          return c.edge + ' by ' + c.amount.toFixed(1) + 'mm';
-        }).join(', ');
-        html += '<li class="check-warn">Page ' + f.page + ' ' + f.kind + ' crosses safe margin: ' + crossDesc + '</li>';
+        if (f.kind === 'text') {
+          textCrossings++;
+        } else if (f.kind === 'photo') {
+          imageCrossings++;
+        }
       } else if (f.type === 'resolution') {
-        html += '<li class="check-warn">Page ' + f.page + ' image at ' + f.dpi + ' dpi (placed ' + f.width.toFixed(0) + '×' + f.height.toFixed(0) + 'mm)</li>';
+        resolutionFindings.push(f);
       }
     });
+
+    var html = '<ul class="check-list">';
+    
+    // Margin crossing summary
+    if (textCrossings > 0 || imageCrossings > 0) {
+      var safe = BL.S.safe || 8;
+      var parts = [];
+      if (textCrossings > 0) {
+        parts.push(textCrossings + ' text layer' + (textCrossings > 1 ? 's' : ''));
+      }
+      if (imageCrossings > 0) {
+        parts.push(imageCrossings + ' image' + (imageCrossings > 1 ? 's' : ''));
+      }
+      var verb = (textCrossings + imageCrossings > 1) ? ' cross ' : ' crosses ';
+      html += '<li class="check-warn">' + parts.join(' and ') + verb + 'the ' + safe + ' mm safe area</li>';
+    }
+    
+    // Resolution warnings
+    resolutionFindings.forEach(function(f) {
+      html += '<li class="check-warn">Page ' + f.page + ' image at ' + f.dpi + ' dpi (placed ' + f.width.toFixed(0) + '×' + f.height.toFixed(0) + 'mm)</li>';
+    });
+    
     html += '</ul>';
 
     panel.innerHTML = html;
