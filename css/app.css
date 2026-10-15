@@ -2522,3 +2522,32 @@ input {
     font-size: 20px;
   }
 }
+
+/* Clear confirmation panel (smaller) */
+.setup-panel-sm {
+  max-width: 340px;
+  text-align: center;
+}
+
+.setup-panel-sm .setup-summary {
+  margin: 12px 0 24px 0;
+}
+
+/* Danger button */
+.btn-danger {
+  background: var(--candy-pink-750);
+}
+
+.btn-danger:hover {
+  background: var(--candy-pink-500);
+}
+
+/* Danger dropdown item */
+.dropdown-item-danger {
+  color: var(--candy-pink-750);
+}
+
+.dropdown-item-danger:hover {
+  background: rgba(222, 80, 91, 0.1);
+  color: var(--candy-pink-750);
+}

@@ -37,6 +37,7 @@
             <button class="dropdown-item" data-action="open" role="menuitem">Open project…</button>
             <button class="dropdown-item" data-action="save-json" role="menuitem">Save project…</button>
             <button class="dropdown-item" data-action="new" role="menuitem">New booklet</button>
+            <button class="dropdown-item dropdown-item-danger" data-action="clear" role="menuitem">Clear everything</button>
           </div>
         </div>
         
@@ -288,6 +289,18 @@
         <div class="setup-buttons">
           <button type="button" class="btn-s setup-cancel" id="setupCancel">Cancel</button>
           <button type="button" class="btn-primary setup-create" id="setupCreate">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clear confirmation -->
+    <div class="setup-overlay" id="clearOverlay" hidden>
+      <div class="setup-panel setup-panel-sm">
+        <h2 class="setup-title">Clear everything?</h2>
+        <p class="setup-summary">Your current booklet will be lost.</p>
+        <div class="setup-buttons">
+          <button type="button" class="btn-s setup-cancel" id="clearCancel">Cancel</button>
+          <button type="button" class="btn-primary btn-danger" id="clearConfirm">Clear everything</button>
         </div>
       </div>
     </div>

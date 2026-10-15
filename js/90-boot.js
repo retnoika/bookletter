@@ -614,6 +614,8 @@
           BL.saveProject();
         } else if (action === 'new') {
           BL.newBooklet();
+        } else if (action === 'clear') {
+          showClearConfirm();
         }
       });
     }
@@ -942,6 +944,75 @@
   BL.hideSetupPanel = hideSetupPanel;
   BL.cancelSetup = cancelSetup;
   
+  // ============ Clear Confirmation ============
+  function showClearConfirm() {
+    var overlay = document.getElementById('clearOverlay');
+    if (overlay) overlay.hidden = false;
+  }
+  
+  function hideClearConfirm() {
+    var overlay = document.getElementById('clearOverlay');
+    if (overlay) overlay.hidden = true;
+  }
+  
+  function confirmClear() {
+    // Clear project state
+    var defaults = BL.defaultState();
+    BL.S = {
+      v: defaults.v,
+      title: defaults.title,
+      orient: defaults.orient,
+      paper: defaults.paper,
+      booklet: defaults.booklet,
+      sheet: defaults.sheet,
+      guide: defaults.guide,
+      safe: defaults.safe,
+      nums: defaults.nums,
+      bleed: defaults.bleed,
+      pages: []
+    };
+    BL.cur = 0;
+    BL.sel = null;
+    BL.clearHistory();
+    
+    // Clear autosave from localStorage and IndexedDB
+    try { localStorage.removeItem('bookletter'); } catch(e) {}
+    if (window.indexedDB) {
+      try {
+        var req = indexedDB.deleteDatabase('bookletter');
+        req.onsuccess = function() {};
+        req.onerror = function() {};
+      } catch(e) {}
+    }
+    
+    // Hide confirmation and show setup panel
+    hideClearConfirm();
+    showSetupPanel(true);
+  }
+  
+  function setupClearConfirm() {
+    var btnCancel = document.getElementById('clearCancel');
+    var btnConfirm = document.getElementById('clearConfirm');
+    
+    if (btnCancel) {
+      btnCancel.addEventListener('click', hideClearConfirm);
+    }
+    if (btnConfirm) {
+      btnConfirm.addEventListener('click', confirmClear);
+    }
+    
+    // Escape key closes confirm
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var overlay = document.getElementById('clearOverlay');
+        if (overlay && !overlay.hidden) {
+          e.preventDefault();
+          hideClearConfirm();
+        }
+      }
+    });
+  }
+  
   function updateSetupUI() {
     // Update paper buttons
     var segPaper = document.getElementById('setupPaper');
@@ -1137,6 +1208,7 @@
     
     // Setup panel handlers
     setupSetupPanel();
+    setupClearConfirm();
     
     // New booklet link in rail
     var btnNewBooklet = document.getElementById('btnNewBooklet');
