@@ -142,6 +142,7 @@ Both tools exit 0 on success, 1 on failure.
 
 ## Credits
 
+- **App icon**: ['Service'](https://www.flaticon.com/free-icon/service_13830467) by pikepicture, Flaticon, free licence (attribution required)
 - **Fonts**: Fraunces and DM Sans (SIL Open Font License), vendored in `assets/fonts`
 - **Icons**: Tabler Icons (MIT License), vendored in `assets/icons`
 - **Bookletter**: MIT License

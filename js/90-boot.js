@@ -905,13 +905,17 @@
     orient: 'portrait'
   };
   
-  function showSetupPanel() {
+  // Track if showing panel for first visit (no existing booklet)
+  var setupIsFirstVisit = false;
+  
+  function showSetupPanel(isFirstVisit) {
     var overlay = document.getElementById('setupOverlay');
     if (overlay) {
       // Reset to defaults
       setupState.paper = 'A3';
       setupState.booklet = 'A5';
       setupState.orient = 'portrait';
+      setupIsFirstVisit = !!isFirstVisit;
       updateSetupUI();
       updateSetupSummary();
       overlay.hidden = false;
@@ -925,8 +929,18 @@
     }
   }
   
+  function cancelSetup() {
+    if (setupIsFirstVisit) {
+      // No existing booklet - create default empty booklet
+      createNewBooklet('A3', 'A5', 'portrait');
+    }
+    // Otherwise just close - existing booklet stays unchanged
+    hideSetupPanel();
+  }
+  
   BL.showSetupPanel = showSetupPanel;
   BL.hideSetupPanel = hideSetupPanel;
+  BL.cancelSetup = cancelSetup;
   
   function updateSetupUI() {
     // Update paper buttons
@@ -1041,6 +1055,12 @@
       });
     }
     
+    // Cancel button
+    var btnCancel = document.getElementById('setupCancel');
+    if (btnCancel) {
+      btnCancel.addEventListener('click', cancelSetup);
+    }
+    
     // Create button
     var btnCreate = document.getElementById('setupCreate');
     if (btnCreate) {
@@ -1049,6 +1069,17 @@
         hideSetupPanel();
       });
     }
+    
+    // Escape key closes panel
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var overlay = document.getElementById('setupOverlay');
+        if (overlay && !overlay.hidden) {
+          e.preventDefault();
+          cancelSetup();
+        }
+      }
+    });
   }
   
   function createNewBooklet(paper, booklet, orient) {
@@ -1392,7 +1423,7 @@
       
       // Show setup panel for first-time visitors
       if (isFirstVisit) {
-        showSetupPanel();
+        showSetupPanel(true);
       }
     });
   }
