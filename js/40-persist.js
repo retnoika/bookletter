@@ -92,6 +92,10 @@
 
   // ============ Autosave ============
   function save() {
+    // Don't autosave when in empty state (no booklet)
+    if (BL.hasBooklet && !BL.hasBooklet()) {
+      return;
+    }
     clearTimeout(saveTimer);
     saveTimer = setTimeout(doSave, DEBOUNCE_MS);
   }
@@ -330,6 +334,8 @@
     if (!file) return;
     
     openProject(file).then(function(result) {
+      // Switch to editor mode if coming from empty state
+      if (BL.showEditor) BL.showEditor();
       BL.renderAll();
       BL.save();
       if (result.skippedLayers > 0) {

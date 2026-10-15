@@ -2552,3 +2552,65 @@ input {
   background: rgba(222, 80, 91, 0.1);
   color: var(--candy-pink-750);
 }
+
+/* ============ Empty State ============ */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 24px;
+}
+
+.empty-state[hidden] {
+  display: none;
+}
+
+.empty-card {
+  background: var(--surface);
+  border: var(--border-w) solid var(--line);
+  border-radius: 12px;
+  padding: 40px 48px;
+  text-align: center;
+  max-width: 320px;
+}
+
+.empty-text {
+  font-size: 15px;
+  color: var(--ink-muted);
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.btn-create-new {
+  min-width: 140px;
+  padding: 14px 28px;
+}
+
+/* Editor content wrapper */
+.editor-content[hidden] {
+  display: none;
+}
+
+/* Disabled header buttons */
+.header-actions .btn-preview:disabled,
+.header-actions .btn-split-main:disabled,
+.header-actions .btn-split-caret:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Center toolbar hidden state */
+.center-toolbar[hidden] {
+  display: none;
+}
+
+/* Rail sections hidden state */
+.rail-section[hidden] {
+  display: none;
+}
+
+.rail-credit[hidden] {
+  display: none;
+}

@@ -11,6 +11,113 @@
   // ============ Active sheet (1-based) ============
   var activeSheet = 1;
 
+  // ============ Empty state (no booklet yet) ============
+  var hasBooklet = false;
+  
+  function showEmptyState() {
+    hasBooklet = false;
+    var emptyState = document.getElementById('emptyState');
+    var editorContent = document.getElementById('editorContent');
+    var centerToolbar = document.querySelector('.center-toolbar');
+    var toolHead = document.getElementById('toolHead');
+    
+    if (emptyState) emptyState.hidden = false;
+    if (editorContent) editorContent.hidden = true;
+    if (centerToolbar) centerToolbar.hidden = true;
+    if (toolHead) toolHead.textContent = 'Your Booklet';
+    
+    // Disable Preview and Save as PDF
+    var bPreview = document.getElementById('bPreview');
+    var bPrint = document.getElementById('bPrint');
+    var bSaveCaret = document.getElementById('bSaveCaret');
+    
+    if (bPreview) {
+      bPreview.disabled = true;
+      bPreview.title = 'Create a booklet first';
+    }
+    if (bPrint) {
+      bPrint.disabled = true;
+      bPrint.title = 'Create a booklet first';
+    }
+    if (bSaveCaret) {
+      bSaveCaret.disabled = true;
+    }
+    
+    // Hide left rail sections except Project Name
+    var leftRail = document.querySelector('.rail-left');
+    if (leftRail) {
+      var sections = leftRail.querySelectorAll('.rail-section');
+      sections.forEach(function(sec, idx) {
+        // Keep first section (Project Name), hide others
+        if (idx > 0) sec.hidden = true;
+      });
+      // Hide credit too
+      var credit = leftRail.querySelector('.rail-credit');
+      if (credit) credit.hidden = true;
+    }
+    
+    // Hide right rail cards
+    var rightRail = document.querySelector('.rail-right');
+    if (rightRail) {
+      var cards = rightRail.querySelectorAll('.rail-section');
+      cards.forEach(function(card) {
+        card.hidden = true;
+      });
+    }
+  }
+  
+  function showEditor() {
+    hasBooklet = true;
+    var emptyState = document.getElementById('emptyState');
+    var editorContent = document.getElementById('editorContent');
+    var centerToolbar = document.querySelector('.center-toolbar');
+    
+    if (emptyState) emptyState.hidden = true;
+    if (editorContent) editorContent.hidden = false;
+    if (centerToolbar) centerToolbar.hidden = false;
+    
+    // Enable Preview and Save as PDF
+    var bPreview = document.getElementById('bPreview');
+    var bPrint = document.getElementById('bPrint');
+    var bSaveCaret = document.getElementById('bSaveCaret');
+    
+    if (bPreview) {
+      bPreview.disabled = false;
+      bPreview.title = '';
+    }
+    if (bPrint) {
+      bPrint.disabled = false;
+      bPrint.title = '';
+    }
+    if (bSaveCaret) {
+      bSaveCaret.disabled = false;
+    }
+    
+    // Show left rail sections
+    var leftRail = document.querySelector('.rail-left');
+    if (leftRail) {
+      var sections = leftRail.querySelectorAll('.rail-section');
+      sections.forEach(function(sec) {
+        sec.hidden = false;
+      });
+      var credit = leftRail.querySelector('.rail-credit');
+      if (credit) credit.hidden = false;
+    }
+    
+    // Show right rail cards
+    var rightRail = document.querySelector('.rail-right');
+    if (rightRail) {
+      var cards = rightRail.querySelectorAll('.rail-section');
+      cards.forEach(function(card) {
+        card.hidden = false;
+      });
+    }
+  }
+  
+  BL.hasBooklet = function() { return hasBooklet; };
+  BL.showEditor = showEditor;
+  BL.showEmptyState = showEmptyState;
+
   // ============ Toast ============
   var toastTimer = null;
 
@@ -932,12 +1039,12 @@
   }
   
   function cancelSetup() {
+    hideSetupPanel();
     if (setupIsFirstVisit) {
-      // No existing booklet - create default empty booklet
-      createNewBooklet('A3', 'A5', 'portrait');
+      // No existing booklet - return to empty state
+      showEmptyState();
     }
     // Otherwise just close - existing booklet stays unchanged
-    hideSetupPanel();
   }
   
   BL.showSetupPanel = showSetupPanel;
@@ -985,9 +1092,9 @@
       } catch(e) {}
     }
     
-    // Hide confirmation and show setup panel
+    // Hide confirmation and show empty state
     hideClearConfirm();
-    showSetupPanel(true);
+    showEmptyState();
   }
   
   function setupClearConfirm() {
@@ -1138,6 +1245,7 @@
       btnCreate.addEventListener('click', function() {
         createNewBooklet(setupState.paper, setupState.booklet, setupState.orient);
         hideSetupPanel();
+        showEditor();
       });
     }
     
@@ -1334,6 +1442,14 @@
       });
     }
     
+    // Create New button in empty state
+    var btnCreateNew = document.getElementById('btnCreateNew');
+    if (btnCreateNew) {
+      btnCreateNew.addEventListener('click', function() {
+        showSetupPanel(true);
+      });
+    }
+    
     // Layout templates
     var layouts = document.getElementById('layouts');
     if (layouts) {
@@ -1493,9 +1609,11 @@
       if (BL.updateSegmentStates) BL.updateSegmentStates();
       renderAll();
       
-      // Show setup panel for first-time visitors
+      // Show empty state for first-time visitors, editor for returning users
       if (isFirstVisit) {
-        showSetupPanel(true);
+        showEmptyState();
+      } else {
+        showEditor();
       }
     });
   }
