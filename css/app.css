@@ -792,6 +792,41 @@ input {
   flex-wrap: wrap;
 }
 
+@media (max-width: 600px) {
+  .center-toolbar {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .toolbar-left {
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+  .toolbar-right {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-left: 0;
+  }
+  /* Hide all text labels in toolbar at narrow widths */
+  .center-toolbar .seg button span,
+  .center-toolbar #snapToggle span,
+  .center-toolbar #bClear span {
+    display: none !important;
+  }
+  .center-toolbar .seg button {
+    padding: 6px 10px;
+    min-width: auto;
+  }
+  .center-toolbar #snapToggle,
+  .center-toolbar #bClear {
+    padding: 6px 8px;
+    min-width: auto;
+  }
+  .center-toolbar #bClear .icon {
+    margin: 0;
+  }
+}
+
 /* ============ Canvas Area ============ */
 .canvas-wrap {
   flex-shrink: 0;
