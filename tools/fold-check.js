@@ -41,8 +41,8 @@ const {
 } = imposition;
 
 // ============ Valid configurations per format ============
-const VALID_PAGE_COUNTS_2x2 = [8, 16, 24];
-const VALID_PAGE_COUNTS_1x2 = [4, 8, 12];
+const VALID_PAGE_COUNTS_2x2 = [8, 16, 24, 32, 40];
+const VALID_PAGE_COUNTS_1x2 = [4, 8, 12, 16, 20];
 const VALID_ORIENTATIONS = ['portrait', 'landscape'];
 const VALID_FORMATS = ['2x2', '1x2'];
 

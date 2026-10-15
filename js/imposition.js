@@ -502,8 +502,7 @@
   exports.PAPERS = PAPERS;
   exports.BOOKLETS = BOOKLETS;
   
-  // Format helpers
-  exports.getFormat = getFormat;
+  // Format helpers (getFormat internal only - 00-state.js exports app-facing version)
   exports.getBaseImposition = getBaseImposition;
   exports.getPagesPerSheet = getPagesPerSheet;
   exports.resolveGeometry = resolveGeometry;
