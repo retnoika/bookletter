@@ -27,7 +27,18 @@
  */
 
 const imposition = require('../js/imposition.js');
-const { computeImposition, getSheetReadingOrder, getBookletReadingOrder, verifyReadingOrder, BASE_IMPOSITION, pageSafeBands } = imposition;
+const { 
+  computeImposition, 
+  getSheetReadingOrder, 
+  getBookletReadingOrder, 
+  verifyReadingOrder,
+  BASE_IMPOSITION,
+  BASE_IMPOSITION_2x2,
+  BASE_IMPOSITION_1x2,
+  pageSafeBands,
+  resolveGeometry,
+  getPagesPerSheet
+} = imposition;
 
 // ============ Valid configurations per format ============
 const VALID_PAGE_COUNTS_2x2 = [8, 16, 24];
@@ -35,22 +46,6 @@ const VALID_PAGE_COUNTS_1x2 = [4, 8, 12];
 const VALID_ORIENTATIONS = ['portrait', 'landscape'];
 const VALID_FORMATS = ['2x2', '1x2'];
 
-// ============ Expected imposition tables ============
-const EXPECTED_IMPOSITION_2x2 = {
-  side1: [[5, 4], [8, 1]],
-  side2: [[3, 6], [2, 7]],
-  rotatedRow: 0
-};
-
-// Hypothesis for 1x2: single row, no rotation
-// Reading order after one fold: 1 (front cover), 2, 3, 4 (back cover)
-// Side 1 has pages 4 (left, back cover) and 1 (right, front cover)
-// Side 2 has pages 2 (left) and 3 (right) - inside spread after fold
-const EXPECTED_IMPOSITION_1x2 = {
-  side1: [[4, 1]],      // single row: col 0 = page 4, col 1 = page 1
-  side2: [[2, 3]],      // single row: col 0 = page 2, col 1 = page 3
-  rotatedRow: -1        // no rotation for one-fold
-};
 
 // ============ Geometry constants ============
 // 2x2: A5 booklet on A3/SRA3 paper
@@ -216,74 +211,59 @@ function verifyGeometry(orient, stockType, format) {
   };
 }
 
-// ============ Verify imposition table matches expected ============
+// ============ Verify imposition table is valid ============
 function verifyImpositionTable(format) {
-  const expected = format === '2x2' ? EXPECTED_IMPOSITION_2x2 : EXPECTED_IMPOSITION_1x2;
+  // Verify that production tables in imposition.js have correct structure
+  const base = format === '2x2' ? BASE_IMPOSITION_2x2 : BASE_IMPOSITION_1x2;
   
-  // For now, we verify against expected constants
-  // When imposition.js is extended, this will use BASE_IMPOSITION or BASE_IMPOSITION_1x2
+  // Expected structure based on format
+  const expectedRows = format === '2x2' ? 2 : 1;
   
+  // Verify structure
+  const errors = [];
+  
+  if (!base || !base.side1 || !base.side2) {
+    return { passed: false, errors: ['Missing table or sides'] };
+  }
+  
+  if (base.side1.length !== expectedRows || base.side2.length !== expectedRows) {
+    errors.push(`Expected ${expectedRows} row(s), got side1:${base.side1.length}, side2:${base.side2.length}`);
+  }
+  
+  // Verify expected values match known-correct imposition
   if (format === '2x2') {
-    const actual = BASE_IMPOSITION;
-    const match = 
-      JSON.stringify(actual.side1) === JSON.stringify(expected.side1) &&
-      JSON.stringify(actual.side2) === JSON.stringify(expected.side2) &&
-      actual.rotatedRow === expected.rotatedRow;
-    
-    return { passed: match, expected, actual };
+    // Expected: side1=[[5,4],[8,1]], side2=[[3,6],[2,7]], rotatedRow=0
+    const expected = { side1: [[5,4],[8,1]], side2: [[3,6],[2,7]], rotatedRow: 0 };
+    if (JSON.stringify(base.side1) !== JSON.stringify(expected.side1)) {
+      errors.push(`2x2 side1 mismatch: expected ${JSON.stringify(expected.side1)}, got ${JSON.stringify(base.side1)}`);
+    }
+    if (JSON.stringify(base.side2) !== JSON.stringify(expected.side2)) {
+      errors.push(`2x2 side2 mismatch: expected ${JSON.stringify(expected.side2)}, got ${JSON.stringify(base.side2)}`);
+    }
+    if (base.rotatedRow !== expected.rotatedRow) {
+      errors.push(`2x2 rotatedRow mismatch: expected ${expected.rotatedRow}, got ${base.rotatedRow}`);
+    }
   } else {
-    // 1x2 format - imposition.js doesn't have this yet
-    // We'll verify the hypothesis by simulating the fold
-    return { 
-      passed: true, 
-      expected, 
-      actual: expected,
-      note: 'Using hypothesis table (imposition.js not yet extended)'
-    };
-  }
-}
-
-// ============ Get reading order for a sheet ============
-function getReadingOrder_1x2(imp) {
-  // For 1x2: side1[0][1], side2[0][0], side2[0][1], side1[0][0]
-  return [
-    imp.side1[0][1],  // front cover (right of side 1)
-    imp.side2[0][0],  // page 2 (left of side 2 after flip)
-    imp.side2[0][1],  // page 3 (right of side 2 after flip)
-    imp.side1[0][0]   // back cover (left of side 1)
-  ];
-}
-
-// ============ Compute imposition for 1x2 format ============
-function computeImposition_1x2(k, N) {
-  const pagesPerSheet = 4;
-  if (k < 1 || k > Math.ceil(N / pagesPerSheet)) {
-    throw new Error(`Sheet index ${k} out of range for ${N} pages`);
+    // Expected: side1=[[4,1]], side2=[[2,3]], rotatedRow=-1
+    const expected = { side1: [[4,1]], side2: [[2,3]], rotatedRow: -1 };
+    if (JSON.stringify(base.side1) !== JSON.stringify(expected.side1)) {
+      errors.push(`1x2 side1 mismatch: expected ${JSON.stringify(expected.side1)}, got ${JSON.stringify(base.side1)}`);
+    }
+    if (JSON.stringify(base.side2) !== JSON.stringify(expected.side2)) {
+      errors.push(`1x2 side2 mismatch: expected ${JSON.stringify(expected.side2)}, got ${JSON.stringify(base.side2)}`);
+    }
+    if (base.rotatedRow !== expected.rotatedRow) {
+      errors.push(`1x2 rotatedRow mismatch: expected ${expected.rotatedRow}, got ${base.rotatedRow}`);
+    }
   }
   
-  const offset = (k - 1) * pagesPerSheet;
-  const base = EXPECTED_IMPOSITION_1x2;
-  
-  return {
-    side1: [[base.side1[0][0] + offset, base.side1[0][1] + offset]],
-    side2: [[base.side2[0][0] + offset, base.side2[0][1] + offset]],
-    rotatedRow: base.rotatedRow
+  return { 
+    passed: errors.length === 0, 
+    actual: base,
+    errors 
   };
 }
 
-// ============ Get booklet reading order for 1x2 ============
-function getBookletReadingOrder_1x2(N) {
-  const pagesPerSheet = 4;
-  const sheetCount = Math.ceil(N / pagesPerSheet);
-  const order = [];
-  
-  for (let k = 1; k <= sheetCount; k++) {
-    const imp = computeImposition_1x2(k, N);
-    order.push(...getReadingOrder_1x2(imp));
-  }
-  
-  return order;
-}
 
 // ============ Main verification ============
 function verify(pageCount, orient, format) {
@@ -322,12 +302,8 @@ function verify(pageCount, orient, format) {
   // ====== Reading Sequence Check ======
   console.log('--- Reading Sequence Check ---');
   
-  let fullReadingOrder;
-  if (format === '2x2') {
-    fullReadingOrder = getBookletReadingOrder(pageCount);
-  } else {
-    fullReadingOrder = getBookletReadingOrder_1x2(pageCount);
-  }
+  // Use production function from imposition.js with format parameter
+  const fullReadingOrder = getBookletReadingOrder(pageCount, format);
   
   const expectedSequence = Array.from({ length: pageCount }, (_, i) => i + 1);
   
@@ -358,19 +334,13 @@ function verify(pageCount, orient, format) {
   console.log('--- Rotation Check ---');
   
   for (let sheetNum = 1; sheetNum <= sheetCount; sheetNum++) {
-    let imp, side1Layout, side2Layout, readingOrder;
-    
-    if (format === '2x2') {
-      imp = computeImposition(sheetNum, pageCount);
-      side1Layout = buildSheetLayout(imp.side1, imp.rotatedRow);
-      side2Layout = buildSheetLayout(imp.side2, imp.rotatedRow);
-      readingOrder = simulateFoldForSheet_2x2(side1Layout, side2Layout);
-    } else {
-      imp = computeImposition_1x2(sheetNum, pageCount);
-      side1Layout = buildSheetLayout(imp.side1, imp.rotatedRow);
-      side2Layout = buildSheetLayout(imp.side2, imp.rotatedRow);
-      readingOrder = simulateFoldForSheet_1x2(side1Layout, side2Layout);
-    }
+    // Use production computeImposition with format parameter
+    const imp = computeImposition(sheetNum, pageCount, format);
+    const side1Layout = buildSheetLayout(imp.side1, imp.rotatedRow);
+    const side2Layout = buildSheetLayout(imp.side2, imp.rotatedRow);
+    const readingOrder = format === '2x2' 
+      ? simulateFoldForSheet_2x2(side1Layout, side2Layout)
+      : simulateFoldForSheet_1x2(side1Layout, side2Layout);
     
     console.log(`  Sheet ${sheetNum}:`);
     let sheetPassed = true;
@@ -398,12 +368,8 @@ function verify(pageCount, orient, format) {
   const duplicates = [];
   
   for (let sheetNum = 1; sheetNum <= sheetCount; sheetNum++) {
-    let imp;
-    if (format === '2x2') {
-      imp = computeImposition(sheetNum, pageCount);
-    } else {
-      imp = computeImposition_1x2(sheetNum, pageCount);
-    }
+    // Use production computeImposition with format parameter
+    const imp = computeImposition(sheetNum, pageCount, format);
     
     const pages = [...imp.side1.flat(), ...imp.side2.flat()];
     for (const p of pages) {
@@ -437,13 +403,14 @@ function verify(pageCount, orient, format) {
   // ====== Position Check ======
   console.log('--- Position Check ---');
   
-  let sheet1Imp, lastSheetImp, page1Pos, pageNPos;
+  let page1Pos, pageNPos;
+  
+  // Use production computeImposition with format parameter
+  const sheet1Imp = computeImposition(1, pageCount, format);
+  const lastSheetImp = computeImposition(sheetCount, pageCount, format);
   
   if (format === '2x2') {
-    sheet1Imp = computeImposition(1, pageCount);
     page1Pos = sheet1Imp.side1[1][1];  // bottom-right
-    
-    lastSheetImp = computeImposition(sheetCount, pageCount);
     pageNPos = lastSheetImp.side1[1][0];  // bottom-left
     
     if (page1Pos !== 1) {
@@ -460,10 +427,7 @@ function verify(pageCount, orient, format) {
       console.log(`Page ${pageCount} at correct position (sheet ${sheetCount}, side 1, [1][0] bottom-left) v`);
     }
   } else {
-    sheet1Imp = computeImposition_1x2(1, pageCount);
     page1Pos = sheet1Imp.side1[0][1];  // right column of single row
-    
-    lastSheetImp = computeImposition_1x2(sheetCount, pageCount);
     pageNPos = lastSheetImp.side1[0][0];  // left column of single row
     
     if (page1Pos !== 1) {
@@ -605,16 +569,14 @@ function main() {
   
   if (tableCheck.passed) {
     console.log(`${format.toUpperCase()} imposition table matches expected v`);
-    console.log(`  Side 1: ${JSON.stringify(tableCheck.expected.side1)}`);
-    console.log(`  Side 2: ${JSON.stringify(tableCheck.expected.side2)}`);
-    console.log(`  Rotated row: ${tableCheck.expected.rotatedRow} (${tableCheck.expected.rotatedRow >= 0 ? 'top row' : 'none'})`);
-    if (tableCheck.note) {
-      console.log(`  Note: ${tableCheck.note}`);
-    }
+    console.log(`  Side 1: ${JSON.stringify(tableCheck.actual.side1)}`);
+    console.log(`  Side 2: ${JSON.stringify(tableCheck.actual.side2)}`);
+    console.log(`  Rotated row: ${tableCheck.actual.rotatedRow} (${tableCheck.actual.rotatedRow >= 0 ? 'top row' : 'none'})`);
   } else {
     console.log(`${format.toUpperCase()} imposition table does not match expected x`);
-    console.log('Expected:', JSON.stringify(tableCheck.expected));
-    console.log('Actual:', JSON.stringify(tableCheck.actual));
+    for (const err of tableCheck.errors) {
+      console.log('  ERROR:', err);
+    }
     process.exit(1);
   }
   console.log('');

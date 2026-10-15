@@ -1,25 +1,43 @@
 /**
  * Bookletter Imposition Module
  * 
- * Single source of truth for the 8-page imposition table and multi-sheet
- * computation. Works in browser (classic script tag) and Node (require).
+ * Single source of truth for imposition tables and geometry computation.
+ * Works in browser (classic script tag) and Node (require).
  * 
- * PHYSICAL FACTS:
- * - One A3 sheet, folded twice and slit, becomes a 4-leaf section
- * - Leaves read in order: leaf 1 = (1,2), leaf 2 = (3,4), leaf 3 = (5,6), leaf 4 = (7,8)
- * - Nesting sections: sheet 1 is outermost, sheet N is innermost
- * - Reading order: 1,2,3,4,5,6,7,8 | 9,10,11,12,13,14,15,16 | ...
- * - Each sheet carries 8 CONSECUTIVE pages: sheet k = pages 8*(k-1)+1 to 8*k
+ * SUPPORTED FORMATS:
  * 
- * The imposition for sheet k is the base 8-page table with every page
- * number shifted by 8*(k-1).
+ * 2x2 (quarter-size pages, e.g., A5 on A3):
+ * - 8 pages per sheet, 2×2 grid per side
+ * - Two folds + one slit
+ * - Top row rotated 180°
+ * 
+ * 1x2 (half-size pages, e.g., A4 on A3):
+ * - 4 pages per sheet
+ * - Portrait booklet: 1×2 grid (pages side by side, vertical fold)
+ * - Landscape booklet: 2×1 grid (pages stacked, horizontal fold)
+ * - One fold, no slit, no rotation
  */
 (function(exports) {
   'use strict';
 
+  // ============ Paper and Booklet Dimensions (mm) ============
+  var PAPERS = {
+    A3:   [297, 420],  // portrait: w × h
+    SRA3: [320, 450],
+    A4:   [210, 297]
+  };
+
+  var BOOKLETS = {
+    A5: [148, 210],    // portrait: w × h
+    A4: [210, 297]
+  };
+
+  // ============ Base Imposition Tables ============
+
   /**
-   * Base imposition table for an 8-page booklet on one A3 sheet.
-   * Grid coordinates: [row][col] where row 0 = top, col 0 = left.
+   * 2×2 imposition table (8 pages per sheet).
+   * Used for quarter-size pages: A5 on A3/SRA3.
+   * Grid: 2 rows × 2 columns per side.
    * 
    * Side 1 (printed first):
    *   Top row (rotated 180°): [5, 4]
@@ -29,65 +47,212 @@
    *   Top row (rotated 180°): [3, 6]
    *   Bottom row (upright):   [2, 7]
    */
-  var BASE_IMPOSITION = {
+  var BASE_IMPOSITION_2x2 = {
     side1: [[5, 4], [8, 1]],
     side2: [[3, 6], [2, 7]],
     rotatedRow: 0
   };
 
   /**
+   * 1×2 imposition table (4 pages per sheet).
+   * Used for half-size pages: A4 on A3/SRA3, A5 on A4.
+   * Grid: 1 row × 2 columns (portrait) or 2 rows × 1 column (landscape).
+   * No rotation needed for single-fold booklets.
+   * 
+   * Side 1: [4, 1] — left = back cover, right = front cover
+   * Side 2: [2, 3] — inside spread (pages 2 and 3)
+   * 
+   * Reading order after fold: 1, 2, 3, 4
+   */
+  var BASE_IMPOSITION_1x2 = {
+    side1: [[4, 1]],
+    side2: [[2, 3]],
+    rotatedRow: -1  // no rotation
+  };
+
+  // Backward compatibility alias
+  var BASE_IMPOSITION = BASE_IMPOSITION_2x2;
+
+  // ============ Format Resolution ============
+
+  /**
+   * Determine the imposition format for a paper/booklet combination.
+   * 
+   * @param {string} paper - Paper size: 'A3', 'SRA3', or 'A4'
+   * @param {string} booklet - Booklet page size: 'A5' or 'A4'
+   * @returns {string} Format: '2x2' or '1x2'
+   * @throws {Error} If combination is invalid
+   */
+  function getFormat(paper, booklet) {
+    // A5 on A3/SRA3 = quarter-size = 2x2
+    if (booklet === 'A5' && (paper === 'A3' || paper === 'SRA3')) {
+      return '2x2';
+    }
+    // A4 on A3/SRA3 = half-size = 1x2
+    if (booklet === 'A4' && (paper === 'A3' || paper === 'SRA3')) {
+      return '1x2';
+    }
+    // A5 on A4 = half-size = 1x2
+    if (booklet === 'A5' && paper === 'A4') {
+      return '1x2';
+    }
+    // Invalid combinations
+    if (booklet === 'A4' && paper === 'A4') {
+      throw new Error('Cannot make A4 booklet on A4 paper (same size)');
+    }
+    if (paper === 'A5') {
+      throw new Error('A5 paper not supported (no valid smaller booklet size)');
+    }
+    throw new Error('Unsupported combination: ' + paper + ' paper with ' + booklet + ' booklet');
+  }
+
+  /**
+   * Get the base imposition table for a format.
+   * 
+   * @param {string} format - '2x2' or '1x2'
+   * @returns {Object} Base imposition table
+   */
+  function getBaseImposition(format) {
+    return format === '2x2' ? BASE_IMPOSITION_2x2 : BASE_IMPOSITION_1x2;
+  }
+
+  /**
+   * Get pages per sheet for a format.
+   * 
+   * @param {string} format - '2x2' or '1x2'
+   * @returns {number} 8 for 2x2, 4 for 1x2
+   */
+  function getPagesPerSheet(format) {
+    return format === '2x2' ? 8 : 4;
+  }
+
+  /**
+   * Resolve complete geometry for a paper/booklet/orientation combination.
+   * 
+   * @param {string} paper - Paper size: 'A3', 'SRA3', or 'A4'
+   * @param {string} booklet - Booklet page size: 'A5' or 'A4'
+   * @param {string} orient - Booklet page orientation: 'portrait' or 'landscape'
+   * @returns {Object} Complete geometry specification
+   */
+  function resolveGeometry(paper, booklet, orient) {
+    var format = getFormat(paper, booklet);
+    var base = getBaseImposition(format);
+    var pagesPerSheet = getPagesPerSheet(format);
+
+    // Get paper and booklet dimensions
+    var paperDims = PAPERS[paper];
+    var bookletDims = BOOKLETS[booklet];
+
+    if (!paperDims) throw new Error('Unknown paper size: ' + paper);
+    if (!bookletDims) throw new Error('Unknown booklet size: ' + booklet);
+
+    // Booklet page dimensions based on orientation
+    var pageDims = orient === 'portrait' 
+      ? [bookletDims[0], bookletDims[1]]    // w × h
+      : [bookletDims[1], bookletDims[0]];   // h × w (swapped for landscape)
+
+    // Grid and paper orientation depend on format and booklet orientation
+    var gridCols, gridRows, paperOrient, folds, slit;
+
+    if (format === '2x2') {
+      // Quarter-size: 2×2 grid, paper same orientation as booklet
+      gridCols = 2;
+      gridRows = 2;
+      paperOrient = orient;
+      folds = 2;
+      slit = true;
+    } else {
+      // Half-size: paper orientation opposite to booklet
+      // Portrait booklet: landscape paper, pages side by side (1×2 = 1 row, 2 cols)
+      // Landscape booklet: portrait paper, pages stacked (2×1 = 2 rows, 1 col)
+      if (orient === 'portrait') {
+        gridCols = 2;
+        gridRows = 1;
+        paperOrient = 'landscape';
+      } else {
+        gridCols = 1;
+        gridRows = 2;
+        paperOrient = 'portrait';
+      }
+      folds = 1;
+      slit = false;
+    }
+
+    // Sheet dimensions based on paper orientation
+    var sheetDims = paperOrient === 'portrait'
+      ? [paperDims[0], paperDims[1]]        // w × h
+      : [paperDims[1], paperDims[0]];       // h × w (swapped for landscape)
+
+    // Calculate spare margin
+    var blockW = gridCols * pageDims[0];
+    var blockH = gridRows * pageDims[1];
+    var spareW = sheetDims[0] - blockW;
+    var spareH = sheetDims[1] - blockH;
+
+    return {
+      format: format,
+      paper: paper,
+      booklet: booklet,
+      orient: orient,
+      pageDims: pageDims,           // [w, h] in mm
+      sheetDims: sheetDims,         // [w, h] in mm
+      paperOrient: paperOrient,     // 'portrait' or 'landscape'
+      grid: { cols: gridCols, rows: gridRows },
+      pagesPerSheet: pagesPerSheet,
+      folds: folds,
+      slit: slit,
+      rotatedRow: base.rotatedRow,
+      spare: { w: spareW, h: spareH },
+      base: base
+    };
+  }
+
+  // ============ Imposition Computation ============
+
+  /**
    * Compute imposition for sheet k of an N-page booklet.
    * 
-   * @param {number} k - 1-based sheet index (1, 2, or 3)
-   * @param {number} N - Total page count (8, 16, or 24)
-   * @returns {Object} { side1: [[number]], side2: [[number]], rotatedRow: number }
+   * @param {number} k - 1-based sheet index
+   * @param {number} N - Total page count
+   * @param {string} [format='2x2'] - Format: '2x2' or '1x2'
+   * @returns {Object} { side1, side2, rotatedRow }
    */
-  function computeImposition(k, N) {
+  function computeImposition(k, N, format) {
+    format = format || '2x2';
+    var base = getBaseImposition(format);
+    var pagesPerSheet = getPagesPerSheet(format);
+    
     if (typeof k !== 'number' || k < 1) {
       throw new Error('Sheet index k must be >= 1');
     }
-    var sheetCount = N / 8;
+    var sheetCount = Math.ceil(N / pagesPerSheet);
     if (k > sheetCount) {
       throw new Error('Sheet index ' + k + ' exceeds sheet count ' + sheetCount);
     }
 
-    // Offset: sheet 1 = 0, sheet 2 = 8, sheet 3 = 16
-    var offset = 8 * (k - 1);
+    var offset = pagesPerSheet * (k - 1);
 
     // Apply offset to base table
+    var side1 = base.side1.map(function(row) {
+      return row.map(function(p) { return p + offset; });
+    });
+    var side2 = base.side2.map(function(row) {
+      return row.map(function(p) { return p + offset; });
+    });
+
     return {
-      side1: [
-        [BASE_IMPOSITION.side1[0][0] + offset, BASE_IMPOSITION.side1[0][1] + offset],
-        [BASE_IMPOSITION.side1[1][0] + offset, BASE_IMPOSITION.side1[1][1] + offset]
-      ],
-      side2: [
-        [BASE_IMPOSITION.side2[0][0] + offset, BASE_IMPOSITION.side2[0][1] + offset],
-        [BASE_IMPOSITION.side2[1][0] + offset, BASE_IMPOSITION.side2[1][1] + offset]
-      ],
-      rotatedRow: BASE_IMPOSITION.rotatedRow
+      side1: side1,
+      side2: side2,
+      rotatedRow: base.rotatedRow
     };
   }
 
+  // ============ Reading Order ============
+
   /**
-   * Get the reading order for a single sheet after folding.
-   * This is the order pages appear when you fold the sheet and flip through.
-   * 
-   * For any sheet, the reading order of the 8 positions is: 1,2,3,4,5,6,7,8
-   * (relative to that sheet's offset).
-   * 
-   * @param {Object} imp - Imposition object from computeImposition
-   * @returns {number[]} Array of 8 page numbers in reading order
+   * Get reading order for 2×2 format (8 pages per sheet).
    */
-  function getSheetReadingOrder(imp) {
-    // After folding:
-    // Position 0 (visible first): side1[1][1] (bottom-right of side 1) - upright
-    // Position 1 (turn page): side2[1][0] (bottom-left of side 2) - upright  
-    // Position 2: side2[0][0] (top-left of side 2) - was rotated, now upright
-    // Position 3: side1[0][1] (top-right of side 1) - was rotated, now upright
-    // Position 4: side1[0][0] (top-left of side 1) - was rotated, now upright
-    // Position 5: side2[0][1] (top-right of side 2) - was rotated, now upright
-    // Position 6: side2[1][1] (bottom-right of side 2) - upright
-    // Position 7: side1[1][0] (bottom-left of side 1) - upright
+  function getSheetReadingOrder_2x2(imp) {
     return [
       imp.side1[1][1], // Position 0: page 1 (front cover)
       imp.side2[1][0], // Position 1: page 2
@@ -101,18 +266,46 @@
   }
 
   /**
-   * Get the full reading order for an entire booklet (all sheets nested).
-   * Sheets are nested outermost to innermost (sheet 1 outside, sheet N inside).
+   * Get reading order for 1×2 format (4 pages per sheet).
+   */
+  function getSheetReadingOrder_1x2(imp) {
+    return [
+      imp.side1[0][1], // Position 0: page 1 (front cover, right of side 1)
+      imp.side2[0][0], // Position 1: page 2 (left of side 2 after flip)
+      imp.side2[0][1], // Position 2: page 3 (right of side 2 after flip)
+      imp.side1[0][0]  // Position 3: page 4 (back cover, left of side 1)
+    ];
+  }
+
+  /**
+   * Get the reading order for a single sheet after folding.
    * 
-   * @param {number} N - Total page count (8, 16, or 24)
+   * @param {Object} imp - Imposition object from computeImposition
+   * @param {string} [format='2x2'] - Format: '2x2' or '1x2'
+   * @returns {number[]} Array of page numbers in reading order
+   */
+  function getSheetReadingOrder(imp, format) {
+    format = format || '2x2';
+    return format === '2x2' 
+      ? getSheetReadingOrder_2x2(imp) 
+      : getSheetReadingOrder_1x2(imp);
+  }
+
+  /**
+   * Get the full reading order for an entire booklet (all sheets nested).
+   * 
+   * @param {number} N - Total page count
+   * @param {string} [format='2x2'] - Format: '2x2' or '1x2'
    * @returns {number[]} Array of N page numbers in reading order
    */
-  function getBookletReadingOrder(N) {
-    var sheetCount = N / 8;
+  function getBookletReadingOrder(N, format) {
+    format = format || '2x2';
+    var pagesPerSheet = getPagesPerSheet(format);
+    var sheetCount = Math.ceil(N / pagesPerSheet);
     var order = [];
     for (var k = 1; k <= sheetCount; k++) {
-      var imp = computeImposition(k, N);
-      var sheetOrder = getSheetReadingOrder(imp);
+      var imp = computeImposition(k, N, format);
+      var sheetOrder = getSheetReadingOrder(imp, format);
       order = order.concat(sheetOrder);
     }
     return order;
@@ -120,16 +313,19 @@
 
   /**
    * Verify that the imposition produces the correct reading order.
-   * Returns null if valid, or an error object describing the failure.
    * 
-   * @param {number} N - Total page count (8, 16, or 24)
-   * @returns {Object|null} null if valid, or { expected, actual, firstMismatch }
+   * @param {number} N - Total page count
+   * @param {string} [format='2x2'] - Format: '2x2' or '1x2'
+   * @returns {null|Object} null if valid, or error object
    */
-  function verifyReadingOrder(N) {
-    var actual = getBookletReadingOrder(N);
+  function verifyReadingOrder(N, format) {
+    format = format || '2x2';
+    var actual = getBookletReadingOrder(N, format);
     var expected = [];
-    for (var i = 1; i <= N; i++) expected.push(i);
-    
+    for (var i = 1; i <= N; i++) {
+      expected.push(i);
+    }
+
     for (var j = 0; j < N; j++) {
       if (actual[j] !== expected[j]) {
         return {
@@ -146,68 +342,64 @@
     return null;
   }
 
+  // ============ Safe Bands (unchanged for now) ============
+
   /**
    * Get the safe-area bands for a page based on its position in the imposition.
-   * 
-   * Each page has exactly 2 unsafe sides (those touching the sheet edge).
-   * The band width = max(0, safeMargin - spare) where spare is the gap between
-   * the 2x2 cell block and the sheet edge.
+   * NOTE: This currently only supports 2x2 format. 1x2 support is a future step.
    * 
    * @param {number} pageIdx - 0-based page index
-   * @param {number} pageCount - Total pages (8, 16, 24)
+   * @param {number} pageCount - Total pages
    * @param {string} orient - 'portrait' or 'landscape'
    * @param {string} sheet - 'A3' or 'SRA3'
-   * @param {number} safe - Printer margin in mm
-   * @returns {Object} { top, right, bottom, left } - band width in mm for each side (0 if fold side)
+   * @param {number} safe - Safe margin in mm
+   * @returns {Object} { top, right, bottom, left, unsafeSides, spareX, spareY }
    */
   function pageSafeBands(pageIdx, pageCount, orient, sheet, safe) {
-    var page = pageIdx + 1; // 1-based page number
-    
-    // Determine which sheet (1-based) and find page position
-    var sheetIdx = Math.ceil(page / 8);
+    // Find which sheet this page is on (1-based)
+    var sheetIdx = Math.ceil((pageIdx + 1) / 8);
     var imp = computeImposition(sheetIdx, pageCount);
     
-    // Find page in the imposition table
-    var row = -1, col = -1, side = null;
+    // Find position of this page in the imposition
+    var page = pageIdx + 1;
+    var pos = null;
     
     // Search side 1
     for (var r = 0; r < 2; r++) {
       for (var c = 0; c < 2; c++) {
         if (imp.side1[r][c] === page) {
-          row = r; col = c; side = 1;
+          pos = { side: 1, row: r, col: c };
           break;
         }
       }
-      if (side) break;
+      if (pos) break;
     }
     
-    // Search side 2 if not found
-    if (!side) {
-      for (var r = 0; r < 2; r++) {
-        for (var c = 0; c < 2; c++) {
-          if (imp.side2[r][c] === page) {
-            row = r; col = c; side = 2;
+    // Search side 2
+    if (!pos) {
+      for (var r2 = 0; r2 < 2; r2++) {
+        for (var c2 = 0; c2 < 2; c2++) {
+          if (imp.side2[r2][c2] === page) {
+            pos = { side: 2, row: r2, col: c2 };
             break;
           }
         }
-        if (side) break;
+        if (pos) break;
       }
     }
     
-    if (row === -1) {
-      // Page not found (shouldn't happen)
-      return { top: 0, right: 0, bottom: 0, left: 0, unsafeSides: [] };
+    if (!pos) {
+      throw new Error('Page ' + page + ' not found in imposition');
     }
     
-    // Determine unsafe sides based on cell position
-    // col 0 -> left edge on sheet; col 1 -> right edge on sheet
-    // row 0 -> top edge on sheet; row 1 -> bottom edge on sheet
-    var unsafeTop = (row === 0);
-    var unsafeBottom = (row === 1);
-    var unsafeLeft = (col === 0);
-    var unsafeRight = (col === 1);
+    // Determine which sides are at the edge of the sheet (unsafe for printing)
+    var unsafeSides = [];
+    if (pos.row === 0) unsafeSides.push('top');
+    if (pos.row === 1) unsafeSides.push('bottom');
+    if (pos.col === 0) unsafeSides.push('left');
+    if (pos.col === 1) unsafeSides.push('right');
     
-    // Get page and sheet dimensions
+    // Get dimensions
     var SHEETS = { A3: [297, 420], SRA3: [320, 450] };
     var PAGE_P = [148, 210], PAGE_L = [210, 148];
     
@@ -217,35 +409,49 @@
     var pw = pageDims[0], ph = pageDims[1];
     var sw = sheetDims[0], sh = sheetDims[1];
     
-    // Calculate spare margins
+    // Calculate spare (gap between pages and sheet edge)
     var spareX = (sw - 2 * pw) / 2;
     var spareY = (sh - 2 * ph) / 2;
     
-    // Band width = max(0, safe - spare)
-    var bandH = Math.max(0, safe - spareY); // top/bottom bands
-    var bandV = Math.max(0, safe - spareX); // left/right bands
-    
-    var unsafeSides = [];
-    if (unsafeTop) unsafeSides.push('top');
-    if (unsafeRight) unsafeSides.push('right');
-    if (unsafeBottom) unsafeSides.push('bottom');
-    if (unsafeLeft) unsafeSides.push('left');
+    // Band width: how much of the safe margin extends into the printable area
+    // If spare >= safe, band = 0 (safe margin fits in the gap)
+    // If spare < safe, band = safe - spare (that much can't be printed)
+    var bandH = Math.max(0, safe - spareY);  // for top/bottom
+    var bandV = Math.max(0, safe - spareX);  // for left/right
     
     return {
-      top: unsafeTop ? bandH : 0,
-      right: unsafeRight ? bandV : 0,
-      bottom: unsafeBottom ? bandH : 0,
-      left: unsafeLeft ? bandV : 0,
+      top: unsafeSides.indexOf('top') >= 0 ? bandH : 0,
+      right: unsafeSides.indexOf('right') >= 0 ? bandV : 0,
+      bottom: unsafeSides.indexOf('bottom') >= 0 ? bandH : 0,
+      left: unsafeSides.indexOf('left') >= 0 ? bandV : 0,
       unsafeSides: unsafeSides,
       spareX: spareX,
       spareY: spareY
     };
   }
 
-  // Export for browser (window.BL) and Node (module.exports)
+  // ============ Exports ============
+  
+  // Tables
   exports.BASE_IMPOSITION = BASE_IMPOSITION;
+  exports.BASE_IMPOSITION_2x2 = BASE_IMPOSITION_2x2;
+  exports.BASE_IMPOSITION_1x2 = BASE_IMPOSITION_1x2;
+  
+  // Dimensions
+  exports.PAPERS = PAPERS;
+  exports.BOOKLETS = BOOKLETS;
+  
+  // Format helpers
+  exports.getFormat = getFormat;
+  exports.getBaseImposition = getBaseImposition;
+  exports.getPagesPerSheet = getPagesPerSheet;
+  exports.resolveGeometry = resolveGeometry;
+  
+  // Imposition computation
   exports.computeImposition = computeImposition;
   exports.getSheetReadingOrder = getSheetReadingOrder;
+  exports.getSheetReadingOrder_2x2 = getSheetReadingOrder_2x2;
+  exports.getSheetReadingOrder_1x2 = getSheetReadingOrder_1x2;
   exports.getBookletReadingOrder = getBookletReadingOrder;
   exports.verifyReadingOrder = verifyReadingOrder;
   exports.pageSafeBands = pageSafeBands;
