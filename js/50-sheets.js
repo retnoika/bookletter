@@ -1,6 +1,6 @@
 /**
  * Bookletter — imposition and print engine
- * 8/16/24-page A5 booklet on 1-3 A3/SRA3 sheets, both sides, fold twice.
+ * Supports both 2x2 (8 pages/sheet) and 1x2 (4 pages/sheet) formats.
  * All geometry in millimetres.
  * 
  * Imposition is computed by js/imposition.js (single source of truth).
@@ -10,10 +10,9 @@
   var BL = window.BL;
 
   // Legacy: BL.IMPOSITION for backward compatibility (sheet 1 of current booklet)
-  // Computed on demand to reflect current state
   Object.defineProperty(BL, 'IMPOSITION', {
     get: function() {
-      return BL.computeImposition(1, BL.S.pages.length);
+      return BL.computeImposition(1, BL.S.pages.length, BL.getFormat());
     }
   });
 
@@ -24,8 +23,6 @@
   BL.setBleed = function(v) { bleed = v; };
 
   // ============ Flip sheet backs (device workaround) ============
-  // Stored in localStorage, NOT in the project file.
-  // When ON, side 2's panel columns are swapped (col 0 ↔ col 1).
   var flipSheetBacks = localStorage.getItem('flipSheetBacks') === 'true';
 
   BL.getFlipSheetBacks = function() { return flipSheetBacks; };
@@ -36,28 +33,45 @@
 
   // ============ Check if bleed is allowed ============
   function canBleed() {
-    // A3 has only ~0.5mm spare per side (1mm total), no room for bleed
-    return BL.S.sheet === 'SRA3';
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    return paper === 'SRA3';
   }
   BL.canBleed = canBleed;
 
+  // ============ Get grid dimensions for current format ============
+  function getGridDims() {
+    var format = BL.getFormat();
+    if (format === '2x2') {
+      return { rows: 2, cols: 2 };
+    } else {
+      // 1x2: depends on orientation
+      // Portrait booklet: 1 row × 2 cols (landscape paper, pages side by side)
+      // Landscape booklet: 2 rows × 1 col (portrait paper, pages stacked)
+      return BL.S.orient === 'portrait' 
+        ? { rows: 1, cols: 2 }
+        : { rows: 2, cols: 1 };
+    }
+  }
+  BL.getGridDims = getGridDims;
+
   // ============ Cell placement ============
-  // left = (sheetW − 2·pageW)/2 + col·pageW
-  // top  = (sheetH − 2·pageH)/2 + row·pageH
   function cellPosition(row, col) {
     var dims = BL.pageDims();
     var sheet = BL.sheetDims();
     var pw = dims[0], ph = dims[1];
     var sw = sheet[0], sh = sheet[1];
+    var grid = getGridDims();
     
-    var left = (sw - 2 * pw) / 2 + col * pw;
-    var top = (sh - 2 * ph) / 2 + row * ph;
+    var ox = (sw - grid.cols * pw) / 2;
+    var oy = (sh - grid.rows * ph) / 2;
+    
+    var left = ox + col * pw;
+    var top = oy + row * ph;
     
     return { left: left, top: top, width: pw, height: ph };
   }
 
   // ============ Build a sheet element ============
-  // sheetIdx = 1-based sheet number, side = 1 or 2
   function buildSheet(sheetIdx, side, opts) {
     // Support old signature: buildSheet(side, opts) for backward compatibility
     if (typeof sheetIdx === 'number' && typeof side === 'object') {
@@ -66,14 +80,16 @@
       sheetIdx = 1;
     }
     opts = opts || {};
+    var format = BL.getFormat();
     var N = BL.S.pages.length;
-    var imp = BL.computeImposition(sheetIdx, N);
+    var imp = BL.computeImposition(sheetIdx, N, format);
     var grid = side === 1 ? imp.side1 : imp.side2;
     var dims = BL.pageDims();
     var sheet = BL.sheetDims();
     var pw = dims[0], ph = dims[1];
     var sw = sheet[0], sh = sheet[1];
     var bleedMm = canBleed() ? bleed : 0;
+    var gridDims = getGridDims();
 
     var sheetEl = BL.el('div', 'sheet');
     sheetEl.style.setProperty('--sw', sw);
@@ -81,19 +97,22 @@
     sheetEl.style.setProperty('--pw', pw);
     sheetEl.style.setProperty('--ph', ph);
 
-    // Offset for centering the 2x2 page block
-    var ox = (sw - 2 * pw) / 2;
-    var oy = (sh - 2 * ph) / 2;
+    // Offset for centering the page block
+    var ox = (sw - gridDims.cols * pw) / 2;
+    var oy = (sh - gridDims.rows * ph) / 2;
 
     // Render cells
-    for (var r = 0; r < 2; r++) {
-      for (var c = 0; c < 2; c++) {
+    var rows = grid.length;
+    var cols = grid[0].length;
+    
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
         var pageNum = grid[r][c];
         var pageIdx = pageNum - 1;
-        var rotated = r === imp.rotatedRow;
+        var rotated = (imp.rotatedRow >= 0) && (r === imp.rotatedRow);
 
         // For side 2, swap column positions when flipSheetBacks is enabled
-        var posCol = (side === 2 && flipSheetBacks) ? (1 - c) : c;
+        var posCol = (side === 2 && flipSheetBacks) ? (cols - 1 - c) : c;
 
         var cell = BL.el('div', 'cell' + (rotated ? ' rot' : ''));
         cell.style.left = 'calc(var(--mm) * ' + (ox + posCol * pw) + ')';
@@ -119,35 +138,46 @@
       }
     }
 
-    // Crop and fold marks (SRA3 only, not for A3)
-    if (BL.S.sheet === 'SRA3' && !opts.tags) {
-      // For print: include marks
-      renderMarks(sheetEl, ox, oy, pw, ph);
-    } else if (BL.S.sheet === 'SRA3' && opts.tags) {
-      // For preview: also show marks
-      renderMarks(sheetEl, ox, oy, pw, ph);
+    // Crop and fold marks (SRA3 only)
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    if (paper === 'SRA3') {
+      renderMarks(sheetEl, ox, oy, pw, ph, gridDims);
     }
 
     // Fold lines (preview only)
     if (opts.tags) {
-      var foldH = BL.el('div', 'foldline h');
-      var foldV = BL.el('div', 'foldline v');
-      sheetEl.appendChild(foldH);
-      sheetEl.appendChild(foldV);
+      if (format === '2x2') {
+        // Two fold lines for 2x2
+        var foldH = BL.el('div', 'foldline h');
+        var foldV = BL.el('div', 'foldline v');
+        sheetEl.appendChild(foldH);
+        sheetEl.appendChild(foldV);
+      } else {
+        // Single fold line for 1x2
+        if (gridDims.rows === 1) {
+          // Horizontal fold (pages side by side -> fold vertically)
+          var foldV2 = BL.el('div', 'foldline v');
+          sheetEl.appendChild(foldV2);
+        } else {
+          // Vertical fold (pages stacked -> fold horizontally)
+          var foldH2 = BL.el('div', 'foldline h');
+          sheetEl.appendChild(foldH2);
+        }
+      }
     }
 
     return sheetEl;
   }
 
   // ============ Render crop and fold marks ============
-  function renderMarks(sheetEl, ox, oy, pw, ph) {
+  function renderMarks(sheetEl, ox, oy, pw, ph, gridDims) {
     var bleedMm = canBleed() ? bleed : 0;
     var trimX = ox - bleedMm;
     var trimY = oy - bleedMm;
-    var blockW = 2 * pw + 2 * bleedMm;
-    var blockH = 2 * ph + 2 * bleedMm;
-    var x1 = trimX + blockW;  // right edge of trim
-    var y1 = trimY + blockH;  // bottom edge of trim
+    var blockW = gridDims.cols * pw + 2 * bleedMm;
+    var blockH = gridDims.rows * ph + 2 * bleedMm;
+    var x1 = trimX + blockW;
+    var y1 = trimY + blockH;
 
     var t = 0.25;  // mark thickness
     var g = 2;     // gap from trim edge
@@ -155,80 +185,82 @@
 
     // Corner crop marks (4 corners × 2 lines = 8 lines)
     var corners = [
-      [trimX, trimY, -1, -1],  // top-left
-      [x1, trimY, 1, -1],       // top-right
-      [trimX, y1, -1, 1],       // bottom-left
-      [x1, y1, 1, 1]            // bottom-right
+      [trimX, trimY, -1, -1],
+      [x1, trimY, 1, -1],
+      [trimX, y1, -1, 1],
+      [x1, y1, 1, 1]
     ];
 
-    corners.forEach(function(corner) {
-      var cx = corner[0], cy = corner[1], dx = corner[2], dy = corner[3];
+    for (var i = 0; i < corners.length; i++) {
+      var cx = corners[i][0], cy = corners[i][1];
+      var dx = corners[i][2], dy = corners[i][3];
       // Horizontal line
-      var hx = dx < 0 ? cx - g - len : cx + g;
-      addMark(sheetEl, hx, cy - t / 2, len, t, 'crop');
+      addMark(sheetEl, 
+        dx < 0 ? cx - g - len : cx + g, 
+        cy - t / 2, 
+        len, t, 'crop');
       // Vertical line
-      var vy = dy < 0 ? cy - g - len : cy + g;
-      addMark(sheetEl, cx - t / 2, vy, t, len, 'crop');
-    });
+      addMark(sheetEl,
+        cx - t / 2,
+        dy < 0 ? cy - g - len : cy + g,
+        t, len, 'crop');
+    }
 
-    // Fold marks at midpoints (4 marks)
-    var mx = trimX + blockW / 2;  // horizontal fold center
-    var my = trimY + blockH / 2;  // vertical fold center
-
-    // Top fold mark
-    addMark(sheetEl, mx - t / 2, trimY - g - len, t, len, 'fold');
-    // Bottom fold mark
-    addMark(sheetEl, mx - t / 2, y1 + g, t, len, 'fold');
-    // Left fold mark
-    addMark(sheetEl, trimX - g - len, my - t / 2, len, t, 'fold');
-    // Right fold mark
-    addMark(sheetEl, x1 + g, my - t / 2, len, t, 'fold');
+    // Fold marks - depend on format
+    var format = BL.getFormat();
+    if (format === '2x2') {
+      // Horizontal fold at center
+      var foldY = oy + ph;
+      addMark(sheetEl, trimX - g - len, foldY - t / 2, len, t, 'fold');
+      addMark(sheetEl, x1 + g, foldY - t / 2, len, t, 'fold');
+      // Vertical fold at center
+      var foldX = ox + pw;
+      addMark(sheetEl, foldX - t / 2, trimY - g - len, t, len, 'fold');
+      addMark(sheetEl, foldX - t / 2, y1 + g, t, len, 'fold');
+    } else {
+      // Single fold for 1x2
+      if (gridDims.rows === 1) {
+        // Vertical fold between pages
+        var foldX2 = ox + pw;
+        addMark(sheetEl, foldX2 - t / 2, trimY - g - len, t, len, 'fold');
+        addMark(sheetEl, foldX2 - t / 2, y1 + g, t, len, 'fold');
+      } else {
+        // Horizontal fold between pages
+        var foldY2 = oy + ph;
+        addMark(sheetEl, trimX - g - len, foldY2 - t / 2, len, t, 'fold');
+        addMark(sheetEl, x1 + g, foldY2 - t / 2, len, t, 'fold');
+      }
+    }
   }
 
   function addMark(parent, x, y, w, h, type) {
-    var mk = BL.el('div', 'mk ' + type);
-    mk.style.left = 'calc(var(--mm) * ' + x + ')';
-    mk.style.top = 'calc(var(--mm) * ' + y + ')';
-    mk.style.width = 'calc(var(--mm) * ' + w + ')';
-    mk.style.height = 'calc(var(--mm) * ' + h + ')';
-    parent.appendChild(mk);
+    var mark = BL.el('div', 'mark ' + type);
+    mark.style.left = 'calc(var(--mm) * ' + x + ')';
+    mark.style.top = 'calc(var(--mm) * ' + y + ')';
+    mark.style.width = 'calc(var(--mm) * ' + w + ')';
+    mark.style.height = 'calc(var(--mm) * ' + h + ')';
+    parent.appendChild(mark);
   }
 
   // ============ Render sheet previews ============
   function renderSheets() {
-    var sheetsHost = document.getElementById('sheets');
-    if (!sheetsHost) return;
+    var container = document.getElementById('sheetPreview');
+    if (!container) return;
+    container.innerHTML = '';
 
-    var sheet = BL.sheetDims();
-    var sw = sheet[0];
-    var sheetCount = BL.S.pages.length / 8;
-    var avail = sheetsHost.clientWidth || 900;
+    var pps = BL.pagesPerSheet();
+    var sheetCount = Math.ceil(BL.S.pages.length / pps);
 
-    // Scale based on how many sheets we need to show (2 sides per sheet)
-    var totalSides = sheetCount * 2;
-    var mm = Math.max(0.4, Math.min(1.5, (avail - 20 * totalSides) / (sw * totalSides)));
-    sheetsHost.style.setProperty('--mm', mm + 'px');
-
-    // Clear and rebuild sheet figures
-    sheetsHost.innerHTML = '';
     for (var k = 1; k <= sheetCount; k++) {
-      // Side 1
-      var fig1 = document.createElement('figure');
-      fig1.innerHTML = '<figcaption>Sheet ' + k + ' side 1 <small>' + (k === 1 ? 'front (print first)' : '') + '</small></figcaption>';
-      var div1 = document.createElement('div');
-      div1.id = 'sheet-' + k + '-1';
-      div1.appendChild(buildSheet(k, 1, { tags: true }));
-      fig1.appendChild(div1);
-      sheetsHost.appendChild(fig1);
-      
-      // Side 2
-      var fig2 = document.createElement('figure');
-      fig2.innerHTML = '<figcaption>Sheet ' + k + ' side 2 <small>' + (k === 1 ? 'back' : '') + '</small></figcaption>';
-      var div2 = document.createElement('div');
-      div2.id = 'sheet-' + k + '-2';
-      div2.appendChild(buildSheet(k, 2, { tags: true }));
-      fig2.appendChild(div2);
-      sheetsHost.appendChild(fig2);
+      var label = BL.el('div', 'sheet-label');
+      label.textContent = 'Sheet ' + k + ' · Front';
+      container.appendChild(label);
+      container.appendChild(buildSheet(k, 1, { tags: true }));
+
+      var label2 = BL.el('div', 'sheet-label');
+      label2.textContent = 'Sheet ' + k + ' · Back';
+      container.appendChild(label2);
+      container.appendChild(buildSheet(k, 2, { tags: true }));
     }
 
     updateSheetNote();
@@ -241,21 +273,31 @@
 
     var sheet = BL.sheetDims();
     var sw = sheet[0], sh = sheet[1];
-    var edge = BL.S.orient === 'portrait' ? 'long edge' : 'short edge';
-    var stockName = BL.S.sheet;
+    var format = BL.getFormat();
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    var paperO = BL.paperOrient();
+    
+    // Flip edge depends on format and orientation
+    var edge;
+    if (format === '2x2') {
+      edge = BL.S.orient === 'portrait' ? 'long edge' : 'short edge';
+    } else {
+      // For 1x2, flip on the edge parallel to the fold
+      edge = paperO === 'landscape' ? 'long edge' : 'short edge';
+    }
 
     var lines = [];
-    lines.push('Print on ' + stockName + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + ' (flip the sheet like a book page—printed side down, left edge goes to the right).');
-    lines.push('In the print dialog choose ' + stockName + ' paper size, 100% scale (Actual size, not Fit), margins none.');
+    lines.push('Print on <b>' + paper + ' ' + paperO + '</b> (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + '.');
+    lines.push('In the print dialog choose ' + paper + ' paper size, 100% scale (Actual size), margins none.');
 
-    if (stockName === 'A3') {
-      lines.push('A3 has no room for crop or fold marks—the pages fit exactly.');
+    if (paper === 'A3' || paper === 'A4') {
+      lines.push(paper + ' has no room for crop or fold marks—the pages fit exactly.');
     } else {
       lines.push('SRA3: trim to the crop marks before folding.');
     }
 
     lines.push('Do a test print on plain paper first with page numbers enabled.');
-    lines.push('If the inside pages come out in the wrong order, your printer\'s duplex flip is going the other way—change the duplex direction and reprint.');
+    lines.push('If the inside pages come out in the wrong order, enable "Flip sheet backs" and reprint.');
 
     noteEl.innerHTML = lines.join('<br>');
   }
@@ -267,21 +309,40 @@
 
     var sheet = BL.sheetDims();
     var sw = sheet[0], sh = sheet[1];
-    var edge = BL.S.orient === 'portrait' ? 'long edge' : 'short edge';
+    var format = BL.getFormat();
     var N = BL.S.pages.length;
-    var sheetCount = N / 8;
+    var pps = BL.pagesPerSheet();
+    var sheetCount = Math.ceil(N / pps);
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    var paperO = BL.paperOrient();
+    var edge = format === '2x2' 
+      ? (BL.S.orient === 'portrait' ? 'long edge' : 'short edge')
+      : (paperO === 'landscape' ? 'long edge' : 'short edge');
 
-    var html = 
-      '<li><b>1 · Print</b>' + sheetCount + ' × ' + BL.S.sheet + ' ' + BL.S.orient + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + '.</li>' +
-      '<li><b>2 · First fold</b>Side 1 facing you, with ' + N + ' | 1 along the bottom. Fold the top half back, behind the sheet.</li>' +
-      '<li><b>3 · Second fold</b>Fold the left half back behind the right half. Page 1 is now the cover and the left fold is the spine. <em>Check: page 1 front cover, page 2 first inside—if not, fix duplex direction before printing more.</em></li>' +
-      '<li><b>4 · Slit the top fold</b>Use a craft knife to slit the top edge so the pages open.</li>';
+    var html = '<li><b>1 · Print</b> ' + sheetCount + ' × ' + paper + ' ' + paperO + ' (' + sw + ' × ' + sh + ' mm), both sides, flip on the ' + edge + '.</li>';
+
+    if (format === '2x2') {
+      html += '<li><b>2 · First fold</b> Side 1 facing you, with ' + N + ' | 1 along the bottom. Fold the top half back, behind the sheet.</li>';
+      html += '<li><b>3 · Second fold</b> Fold the left half back behind the right half. Page 1 is now the cover and the left fold is the spine. <em>Check: page 1 front cover, page 2 first inside—if not, enable "Flip sheet backs".</em></li>';
+      html += '<li><b>4 · Slit the top fold</b> Use a craft knife to slit the top edge so the pages open.</li>';
+    } else {
+      // 1x2 format - single fold, no slit
+      var gridDims = getGridDims();
+      if (gridDims.rows === 1) {
+        html += '<li><b>2 · Fold</b> Side 1 facing you, with ' + N + ' | 1 at left | right. Fold the left half back behind the right half. Page 1 is now the cover.</li>';
+      } else {
+        html += '<li><b>2 · Fold</b> Side 1 facing you, with ' + N + ' above 1. Fold the top half back, behind the sheet. Page 1 is now the cover.</li>';
+      }
+      html += '<li><b>3 · Check</b> <em>Page 1 should be the front cover, page 2 the first inside—if not, enable "Flip sheet backs".</em></li>';
+    }
     
     if (sheetCount > 1) {
-      html += '<li><b>5 · Nest sections</b>Place smaller signatures inside larger ones (sheet ' + sheetCount + ' innermost).</li>';
-      html += '<li><b>6 · Stitch or staple</b>Through all layers along the spine.</li>';
+      var nextStep = format === '2x2' ? 5 : 4;
+      html += '<li><b>' + nextStep + ' · Nest sections</b> Place smaller signatures inside larger ones (sheet ' + sheetCount + ' innermost).</li>';
+      html += '<li><b>' + (nextStep + 1) + ' · Stitch or staple</b> Through all layers along the spine.</li>';
     } else {
-      html += '<li><b>5 · Stitch or staple</b>Along the spine to bind.</li>';
+      var finalStep = format === '2x2' ? 5 : 4;
+      html += '<li><b>' + finalStep + ' · Stitch or staple</b> Along the spine to bind.</li>';
     }
     
     stepsEl.innerHTML = html;
@@ -292,8 +353,7 @@
     var printArea = document.getElementById('printArea');
     if (!printArea) return;
 
-    // Set @page size dynamically - ALWAYS use explicit mm dimensions.
-    // Named sizes like "A3 landscape" are unreliable in Safari/iOS.
+    // Set @page size dynamically - ALWAYS use explicit mm dimensions
     var sheet = BL.sheetDims();
     var sw = sheet[0], sh = sheet[1];
     var pageStyle = document.getElementById('pageStyle');
@@ -301,7 +361,8 @@
       pageStyle.textContent = '@page { size: ' + sw + 'mm ' + sh + 'mm; margin: 0; }';
     }
 
-    var sheetCount = BL.S.pages.length / 8;
+    var pps = BL.pagesPerSheet();
+    var sheetCount = Math.ceil(BL.S.pages.length / pps);
     printArea.innerHTML = '';
     for (var k = 1; k <= sheetCount; k++) {
       printArea.appendChild(buildSheet(k, 1, { tags: false }));
@@ -311,16 +372,13 @@
 
   // ============ Print / Save PDF ============
   function doPrint() {
-    // Check bleed compatibility
     if (bleed > 0 && !canBleed()) {
-      BL.toast('Bleed requires SRA3 stock. A3 has no room for bleed.');
+      BL.toast('Bleed requires SRA3 stock.');
       return;
     }
 
     buildPrintArea();
 
-    // Safari requires window.print() to be called synchronously within the
-    // user gesture task. Check if all images are already decoded/complete.
     var images = document.querySelectorAll('#printArea img');
     var allComplete = true;
     for (var i = 0; i < images.length; i++) {
@@ -331,21 +389,15 @@
     }
 
     if (allComplete) {
-      // All images ready - print synchronously (required for Safari)
       window.print();
     } else {
-      // Some images not yet decoded - print anyway (better than dead button)
-      // Safari may show incomplete images but at least the dialog opens
-      window.print();
+      BL.toast('Loading images…');
+      setTimeout(function() { window.print(); }, 500);
     }
   }
 
   // ============ beforeprint handler ============
   window.addEventListener('beforeprint', function() {
-    if (bleed > 0 && !canBleed()) {
-      // Can't prevent print in beforeprint, but at least don't build garbage
-      return;
-    }
     buildPrintArea();
   });
 
@@ -358,78 +410,76 @@
 
   // ============ Setup ============
   function setupSheets() {
+    // Flip Sheet Backs toggle
+    var flipToggle = document.getElementById('flipSheetBacks');
+    if (flipToggle) {
+      flipToggle.checked = flipSheetBacks;
+      flipToggle.addEventListener('change', function() {
+        BL.setFlipSheetBacks(flipToggle.checked);
+        BL.renderSheets();
+      });
+    }
+
     // Print button
-    var bPrint = document.getElementById('bPrint');
-    if (bPrint) {
-      bPrint.addEventListener('click', doPrint);
+    var printBtn = document.getElementById('bPrint');
+    if (printBtn) {
+      printBtn.addEventListener('click', doPrint);
     }
 
-    // Sheet stock selector
-    var segSheet = document.getElementById('segSheet');
-    if (segSheet) {
-      segSheet.addEventListener('click', function(e) {
-        var btn = e.target.closest('button[data-v]');
+    // Sheet tabs (if present)
+    var sheetTabs = document.getElementById('sheetTabs');
+    if (sheetTabs) {
+      sheetTabs.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
         if (!btn) return;
-        var val = btn.dataset.v;
-        if (BL.S.sheet === val) return;
-
-        BL.pushUndo();
-        BL.S.sheet = val;
-        updateSheetToggle();
-        updateBleedToggle();
-        BL.renderSheets();
-        BL.updateSteps();
-        BL.save();
-      });
-    }
-
-    // Bleed selector
-    var segBleed = document.getElementById('segBleed');
-    if (segBleed) {
-      segBleed.addEventListener('click', function(e) {
-        var btn = e.target.closest('button[data-v]');
-        if (!btn) return;
-        var val = parseInt(btn.dataset.v, 10);
-        
-        if (val > 0 && !canBleed()) {
-          BL.toast('Bleed requires SRA3 stock. A3 has only 0.5mm spare per side.');
-          return;
+        var sheetNum = parseInt(btn.dataset.sheet, 10);
+        if (sheetNum >= 1) {
+          // Navigate to first page of that sheet
+          var pps = BL.pagesPerSheet();
+          BL.cur = (sheetNum - 1) * pps;
+          if (BL.cur >= BL.S.pages.length) BL.cur = BL.S.pages.length - 1;
+          BL.renderSheets();
+          BL.updateSteps();
+          BL.save();
         }
-
-        bleed = val;
-        updateBleedToggle();
-        BL.renderSheets();
       });
     }
-
-    // Initial render
-    updateSheetToggle();
-    updateBleedToggle();
   }
 
   function updateSheetToggle() {
     var segSheet = document.getElementById('segSheet');
     if (!segSheet) return;
-    var btns = segSheet.querySelectorAll('button[data-v]');
-    btns.forEach(function(btn) {
-      btn.setAttribute('aria-pressed', btn.dataset.v === BL.S.sheet);
-    });
+    var btns = segSheet.querySelectorAll('button');
+    var current = BL.S.sheet;
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('active', btns[i].dataset.v === current);
+    }
   }
 
   function updateBleedToggle() {
     var segBleed = document.getElementById('segBleed');
     if (!segBleed) return;
-    var btns = segBleed.querySelectorAll('button[data-v]');
+    var btns = segBleed.querySelectorAll('button');
     var canUseBleed = canBleed();
-    btns.forEach(function(btn) {
+    
+    for (var i = 0; i < btns.length; i++) {
+      var btn = btns[i];
       var val = parseInt(btn.dataset.v, 10);
-      btn.setAttribute('aria-pressed', val === bleed);
-      // Disable 3mm when A3 is selected (no room for bleed)
-      if (val === 3) {
+      btn.classList.toggle('active', val === bleed);
+      // Disable 3mm button when bleed not allowed
+      if (val > 0) {
         btn.disabled = !canUseBleed;
         btn.setAttribute('aria-disabled', !canUseBleed);
       }
-    });
+    }
+    
+    // Reset bleed to 0 if switching to non-SRA3
+    if (!canUseBleed && bleed > 0) {
+      bleed = 0;
+      for (var j = 0; j < btns.length; j++) {
+        btns[j].classList.toggle('active', parseInt(btns[j].dataset.v, 10) === 0);
+      }
+    }
   }
 
   BL.setupSheets = setupSheets;

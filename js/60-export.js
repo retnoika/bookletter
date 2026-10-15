@@ -72,28 +72,33 @@
       side = sheetIdx;
       sheetIdx = 1;
     }
+    var format = BL.getFormat();
     var N = BL.S.pages.length;
-    var imp = BL.computeImposition(sheetIdx, N);
+    var imp = BL.computeImposition(sheetIdx, N, format);
     var grid = side === 1 ? imp.side1 : imp.side2;
     var dims = BL.pageDims();
     var sheet = BL.sheetDims();
     var pw = dims[0], ph = dims[1];
     var sw = sheet[0], sh = sheet[1];
+    
+    // Get grid dimensions from table
+    var rows = grid.length;
+    var cols = grid[0].length;
 
     // White background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, sw * pxPerMm, sh * pxPerMm);
 
     // Cell offset
-    var ox = (sw - 2 * pw) / 2;
-    var oy = (sh - 2 * ph) / 2;
+    var ox = (sw - cols * pw) / 2;
+    var oy = (sh - rows * ph) / 2;
 
     // Draw each cell
-    for (var r = 0; r < 2; r++) {
-      for (var c = 0; c < 2; c++) {
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
         var pageNum = grid[r][c];
         var pageIdx = pageNum - 1;
-        var rotated = r === imp.rotatedRow;
+        var rotated = (imp.rotatedRow >= 0) && (r === imp.rotatedRow);
 
         var cellX = ox + c * pw;
         var cellY = oy + r * ph;
@@ -104,8 +109,9 @@
     }
 
     // Draw marks if SRA3
-    if (BL.S.sheet === 'SRA3') {
-      drawMarks(ctx, ox, oy, pw, ph, pxPerMm);
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    if (paper === 'SRA3') {
+      drawMarks(ctx, ox, oy, pw, ph, pxPerMm, rows, cols);
     }
   }
 
@@ -285,12 +291,14 @@
 
 
   // ============ Draw crop/fold marks ============
-  function drawMarks(ctx, ox, oy, pw, ph, pxPerMm) {
+  function drawMarks(ctx, ox, oy, pw, ph, pxPerMm, rows, cols) {
+    rows = rows || 2;
+    cols = cols || 2;
     var bleedMm = BL.canBleed() ? BL.getBleed() : 0;
     var trimX = ox - bleedMm;
     var trimY = oy - bleedMm;
-    var blockW = 2 * pw + 2 * bleedMm;
-    var blockH = 2 * ph + 2 * bleedMm;
+    var blockW = cols * pw + 2 * bleedMm;
+    var blockH = rows * ph + 2 * bleedMm;
     var x1 = trimX + blockW;
     var y1 = trimY + blockH;
 
@@ -318,25 +326,40 @@
       ctx.fillRect((cx - t / 2) * pxPerMm, vy * pxPerMm, t * pxPerMm, len * pxPerMm);
     });
 
-    // Fold marks (4 lines)
-    var mx = trimX + blockW / 2;
-    var my = trimY + blockH / 2;
-
-    // Top
-    ctx.fillRect((mx - t / 2) * pxPerMm, (trimY - g - len) * pxPerMm, t * pxPerMm, len * pxPerMm);
-    // Bottom
-    ctx.fillRect((mx - t / 2) * pxPerMm, (y1 + g) * pxPerMm, t * pxPerMm, len * pxPerMm);
-    // Left
-    ctx.fillRect((trimX - g - len) * pxPerMm, (my - t / 2) * pxPerMm, len * pxPerMm, t * pxPerMm);
-    // Right
-    ctx.fillRect((x1 + g) * pxPerMm, (my - t / 2) * pxPerMm, len * pxPerMm, t * pxPerMm);
+    // Fold marks depend on format
+    var format = BL.getFormat();
+    if (format === '2x2') {
+      // Two fold lines
+      var mx = trimX + blockW / 2;
+      var my = trimY + blockH / 2;
+      // Top/bottom (vertical fold)
+      ctx.fillRect((mx - t / 2) * pxPerMm, (trimY - g - len) * pxPerMm, t * pxPerMm, len * pxPerMm);
+      ctx.fillRect((mx - t / 2) * pxPerMm, (y1 + g) * pxPerMm, t * pxPerMm, len * pxPerMm);
+      // Left/right (horizontal fold)
+      ctx.fillRect((trimX - g - len) * pxPerMm, (my - t / 2) * pxPerMm, len * pxPerMm, t * pxPerMm);
+      ctx.fillRect((x1 + g) * pxPerMm, (my - t / 2) * pxPerMm, len * pxPerMm, t * pxPerMm);
+    } else {
+      // Single fold line for 1x2
+      if (rows === 1) {
+        // Vertical fold at center
+        var mx2 = trimX + blockW / 2;
+        ctx.fillRect((mx2 - t / 2) * pxPerMm, (trimY - g - len) * pxPerMm, t * pxPerMm, len * pxPerMm);
+        ctx.fillRect((mx2 - t / 2) * pxPerMm, (y1 + g) * pxPerMm, t * pxPerMm, len * pxPerMm);
+      } else {
+        // Horizontal fold at center
+        var my2 = trimY + blockH / 2;
+        ctx.fillRect((trimX - g - len) * pxPerMm, (my2 - t / 2) * pxPerMm, len * pxPerMm, t * pxPerMm);
+        ctx.fillRect((x1 + g) * pxPerMm, (my2 - t / 2) * pxPerMm, len * pxPerMm, t * pxPerMm);
+      }
+    }
   }
 
   // ============ Export single sheet PNG ============
   function exportSheet(sheetIdx, side) {
     var dims = exportDims();
     var title = sanitizeFilename(BL.S.title || 'booklet');
-    var sheetCount = BL.S.pages.length / 8;
+    var pps = BL.pagesPerSheet();
+    var sheetCount = Math.ceil(BL.S.pages.length / pps);
     var filename;
     if (sheetCount > 1) {
       filename = title + '-sheet' + sheetIdx + '-side' + side + '.png';

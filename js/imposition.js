@@ -346,27 +346,56 @@
 
   /**
    * Get the safe-area bands for a page based on its position in the imposition.
-   * NOTE: This currently only supports 2x2 format. 1x2 support is a future step.
+   * Supports both 2x2 and 1x2 formats.
    * 
    * @param {number} pageIdx - 0-based page index
    * @param {number} pageCount - Total pages
    * @param {string} orient - 'portrait' or 'landscape'
-   * @param {string} sheet - 'A3' or 'SRA3'
+   * @param {string} paper - 'A3', 'A4', or 'SRA3'
    * @param {number} safe - Safe margin in mm
+   * @param {string} [booklet='A5'] - Booklet page size: 'A5' or 'A4'
    * @returns {Object} { top, right, bottom, left, unsafeSides, spareX, spareY }
    */
-  function pageSafeBands(pageIdx, pageCount, orient, sheet, safe) {
-    // Find which sheet this page is on (1-based)
-    var sheetIdx = Math.ceil((pageIdx + 1) / 8);
-    var imp = computeImposition(sheetIdx, pageCount);
+  function pageSafeBands(pageIdx, pageCount, orient, paper, safe, booklet) {
+    booklet = booklet || 'A5';
+    
+    // Determine format
+    var format;
+    if (booklet === 'A5' && (paper === 'A3' || paper === 'SRA3')) {
+      format = '2x2';
+    } else {
+      format = '1x2';
+    }
+    
+    var pagesPerSheet = format === '2x2' ? 8 : 4;
+    var sheetIdx = Math.ceil((pageIdx + 1) / pagesPerSheet);
+    var imp = computeImposition(sheetIdx, pageCount, format);
+    
+    // Determine grid dimensions
+    var gridRows, gridCols;
+    if (format === '2x2') {
+      gridRows = 2;
+      gridCols = 2;
+    } else {
+      // 1x2: portrait booklet = 1 row, 2 cols; landscape = 2 rows, 1 col
+      if (orient === 'portrait') {
+        gridRows = 1;
+        gridCols = 2;
+      } else {
+        gridRows = 2;
+        gridCols = 1;
+      }
+    }
     
     // Find position of this page in the imposition
     var page = pageIdx + 1;
     var pos = null;
+    var rows = imp.side1.length;
+    var cols = imp.side1[0].length;
     
     // Search side 1
-    for (var r = 0; r < 2; r++) {
-      for (var c = 0; c < 2; c++) {
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
         if (imp.side1[r][c] === page) {
           pos = { side: 1, row: r, col: c };
           break;
@@ -377,8 +406,8 @@
     
     // Search side 2
     if (!pos) {
-      for (var r2 = 0; r2 < 2; r2++) {
-        for (var c2 = 0; c2 < 2; c2++) {
+      for (var r2 = 0; r2 < rows; r2++) {
+        for (var c2 = 0; c2 < cols; c2++) {
           if (imp.side2[r2][c2] === page) {
             pos = { side: 2, row: r2, col: c2 };
             break;
@@ -394,28 +423,60 @@
     
     // Determine which sides are at the edge of the sheet (unsafe for printing)
     var unsafeSides = [];
-    if (pos.row === 0) unsafeSides.push('top');
-    if (pos.row === 1) unsafeSides.push('bottom');
-    if (pos.col === 0) unsafeSides.push('left');
-    if (pos.col === 1) unsafeSides.push('right');
+    
+    if (format === '2x2') {
+      // 2x2: each page occupies one quadrant
+      if (pos.row === 0) unsafeSides.push('top');
+      if (pos.row === 1) unsafeSides.push('bottom');
+      if (pos.col === 0) unsafeSides.push('left');
+      if (pos.col === 1) unsafeSides.push('right');
+    } else {
+      // 1x2: each page spans full width or height, so 3 sides are at edge
+      if (gridRows === 1) {
+        // Pages side by side (portrait booklet on landscape paper)
+        // Left and right are always at edge; one of top/bottom depends on side
+        unsafeSides.push('left', 'right');
+        if (pos.side === 1) {
+          // Side 1: pages at bottom (page 1 is front cover at bottom-right)
+          unsafeSides.push('bottom');
+        } else {
+          // Side 2: after flip, pages at top
+          unsafeSides.push('top');
+        }
+      } else {
+        // Pages stacked (landscape booklet on portrait paper)
+        // Top and bottom are always at edge; one of left/right depends on side
+        unsafeSides.push('top', 'bottom');
+        if (pos.side === 1) {
+          // Side 1: pages on right side
+          unsafeSides.push('right');
+        } else {
+          // Side 2: after flip, pages on left
+          unsafeSides.push('left');
+        }
+      }
+    }
     
     // Get dimensions
-    var SHEETS = { A3: [297, 420], SRA3: [320, 450] };
-    var PAGE_P = [148, 210], PAGE_L = [210, 148];
+    var SHEETS = { A3: [297, 420], A4: [210, 297], SRA3: [320, 450] };
+    var BOOKLETS = { A5: [148, 210], A4: [210, 297] };
     
-    var pageDims = orient === 'portrait' ? PAGE_P : PAGE_L;
-    var sheetDims = orient === 'portrait' ? SHEETS[sheet] : [SHEETS[sheet][1], SHEETS[sheet][0]];
+    var bookletDims = BOOKLETS[booklet] || BOOKLETS.A5;
+    var pageDimsArr = orient === 'portrait' ? [bookletDims[0], bookletDims[1]] : [bookletDims[1], bookletDims[0]];
     
-    var pw = pageDims[0], ph = pageDims[1];
-    var sw = sheetDims[0], sh = sheetDims[1];
+    // Paper orientation: 2x2 same as booklet, 1x2 opposite
+    var paperOrient = format === '2x2' ? orient : (orient === 'portrait' ? 'landscape' : 'portrait');
+    var sheetArr = SHEETS[paper] || SHEETS.A3;
+    var sheetDimsArr = paperOrient === 'portrait' ? [sheetArr[0], sheetArr[1]] : [sheetArr[1], sheetArr[0]];
+    
+    var pw = pageDimsArr[0], ph = pageDimsArr[1];
+    var sw = sheetDimsArr[0], sh = sheetDimsArr[1];
     
     // Calculate spare (gap between pages and sheet edge)
-    var spareX = (sw - 2 * pw) / 2;
-    var spareY = (sh - 2 * ph) / 2;
+    var spareX = (sw - gridCols * pw) / 2;
+    var spareY = (sh - gridRows * ph) / 2;
     
     // Band width: how much of the safe margin extends into the printable area
-    // If spare >= safe, band = 0 (safe margin fits in the gap)
-    // If spare < safe, band = safe - spare (that much can't be printed)
     var bandH = Math.max(0, safe - spareY);  // for top/bottom
     var bandV = Math.max(0, safe - spareX);  // for left/right
     

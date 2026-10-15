@@ -154,16 +154,31 @@
   BL.updateSavedStatus = updateSavedStatus;
 
   // ============ Load saved state ============
-  // Helper: check if page count is valid
+  // Helper: check if page count is valid (multiples of 4, up to 24)
   function isValidPageCount(len) {
-    return BL.VALID_PAGE_COUNTS.indexOf(len) !== -1;
+    // Accept 4, 8, 12, 16, 20, 24 (multiples of 4 up to 24)
+    return len >= 4 && len <= 24 && len % 4 === 0;
   }
 
-  // Helper: migrate old projects (add pageCount field if missing)
+  // Helper: migrate old projects
   function migrateProject(data) {
-    if (data && data.pages && !data.pageCount) {
+    if (!data || !data.pages) return data;
+    
+    // Add pageCount if missing
+    if (!data.pageCount) {
       data.pageCount = data.pages.length;
     }
+    
+    // Migrate to v3: add paper/booklet fields
+    if (!data.v || data.v < 3) {
+      // Old projects default to A3 paper + A5 booklet
+      data.paper = data.paper || data.sheet || 'A3';
+      data.booklet = data.booklet || 'A5';
+      // Keep sheet field for backward compat
+      data.sheet = data.sheet || data.paper || 'A3';
+      data.v = 3;
+    }
+    
     return data;
   }
 
@@ -238,12 +253,11 @@
       return { error: 'Invalid file format' };
     }
     if (!Array.isArray(data.pages) || !isValidPageCount(data.pages.length)) {
-      return { error: 'Not a Bookletter project: must have 8, 16, or 24 pages' };
+      return { error: 'Not a Bookletter project: must have 4, 8, 12, 16, or 24 pages' };
     }
-    // Migrate: add pageCount if missing
-    if (!data.pageCount) {
-      data.pageCount = data.pages.length;
-    }
+    
+    // Apply migration (adds paper/booklet fields, etc.)
+    migrateProject(data);
     
     // Valid layer kinds
     var validKinds = ['photo', 'text'];
@@ -258,7 +272,7 @@
       if (!Array.isArray(page.layers)) {
         page.layers = [];
       } else {
-        // Filter out unknown layer kinds (e.g., shape)
+        // Filter out unknown layer kinds
         var originalCount = page.layers.length;
         page.layers = page.layers.filter(function(layer) {
           return layer && validKinds.indexOf(layer.kind) !== -1;

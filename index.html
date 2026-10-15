@@ -68,7 +68,7 @@
         </section>
 
         <section class="rail-section">
-          <h3 class="section-title">Booklet Size</h3>
+          <h3 class="section-title">Sections</h3>
           <div class="seg seg-vertical" id="segPages">
             <button data-v="8">8 pages · 1 sheet</button>
             <button data-v="16">16 pages · 2 sheets</button>
@@ -77,18 +77,19 @@
         </section>
 
         <section class="rail-section">
-          <h3 class="section-title">Pages</h3>
+          <h3 class="section-title">Orientation</h3>
           <div class="seg" id="segOrient">
-            <button data-v="portrait">Portrait A5</button>
-            <button data-v="landscape">Landscape A5</button>
+            <button data-v="portrait">Portrait</button>
+            <button data-v="landscape">Landscape</button>
           </div>
         </section>
 
         <section class="rail-section">
-          <h3 class="section-title">Sheets</h3>
+          <h3 class="section-title">Paper</h3>
           <div class="sheet-controls">
-            <div class="seg" id="segSheet">
+            <div class="seg" id="segPaper">
               <button data-v="A3">A3</button>
+              <button data-v="A4">A4</button>
               <button data-v="SRA3">SRA3</button>
             </div>
             <div class="bleed-control">
@@ -100,6 +101,15 @@
             </div>
           </div>
           <p class="helper-text">Bleed extends artwork 3mm past the trimmed edge — SRA3 only.</p>
+        </section>
+
+        <section class="rail-section">
+          <h3 class="section-title">Booklet</h3>
+          <div class="seg" id="segBooklet">
+            <button data-v="A5">A5</button>
+            <button data-v="A4">A4</button>
+          </div>
+          <p class="helper-text" id="feedNote"></p>
         </section>
 
         <section class="rail-section">

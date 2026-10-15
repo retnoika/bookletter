@@ -46,7 +46,8 @@
 
   // ============ Get active sheet from current page ============
   function getSheetForPage(pageIdx) {
-    return Math.floor(pageIdx / 8) + 1;
+    var pps = BL.pagesPerSheet();
+    return Math.floor(pageIdx / pps) + 1;
   }
 
   // ============ Sheet tabs rendering ============
@@ -54,7 +55,8 @@
     var container = document.getElementById('sheetTabs');
     if (!container) return;
     
-    var sheetCount = BL.S.pages.length / 8;
+    var pps = BL.pagesPerSheet();
+    var sheetCount = Math.ceil(BL.S.pages.length / pps);
     container.innerHTML = '';
     
     for (var k = 1; k <= sheetCount; k++) {
@@ -67,7 +69,8 @@
         return function() {
           activeSheet = sheetNum;
           // Switch to first page of this sheet
-          BL.cur = (sheetNum - 1) * 8;
+          var pps = BL.pagesPerSheet();
+          BL.cur = (sheetNum - 1) * pps;
           BL.sel = null;
           renderAll();
         };
@@ -87,8 +90,9 @@
     strip.innerHTML = '';
     
     // Only show pages for the active sheet
-    var startPage = (activeSheet - 1) * 8;
-    var endPage = Math.min(startPage + 8, BL.S.pages.length);
+    var pps = BL.pagesPerSheet();
+    var startPage = (activeSheet - 1) * pps;
+    var endPage = Math.min(startPage + pps, BL.S.pages.length);
     
     for (var i = startPage; i < endPage; i++) {
       var btn = document.createElement('button');
@@ -429,19 +433,22 @@
 
   // ============ Render print plan ============
   function renderPrintPlan() {
-    var sheetCount = BL.S.pages.length / 8;
+    var pps = BL.pagesPerSheet();
+    var sheetCount = Math.ceil(BL.S.pages.length / pps);
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    var booklet = BL.S.booklet || 'A5';
     
     // Update print plan label
     var planLabel = document.getElementById('printPlanLabel');
     if (planLabel) {
-      planLabel.textContent = String(sheetCount).padStart(2, '0') + ' / A3 PRINT PLAN';
+      planLabel.textContent = String(sheetCount).padStart(2, '0') + ' / ' + paper + ' PRINT PLAN';
     }
     
     // Update print plan title
     var planTitle = document.getElementById('printPlanTitle');
     if (planTitle) {
       var sheetWord = sheetCount === 1 ? 'sheet' : 'sheets';
-      var pageWord = BL.S.pages.length + ' A5 pages';
+      var pageWord = BL.S.pages.length + ' ' + booklet + ' pages';
       planTitle.innerHTML = sheetCount + ' ' + sheetWord + '.<br><span class="accent">' + pageWord + '.</span>';
     }
     
@@ -722,7 +729,8 @@
     menu.appendChild(pdfItem);
     
     // PNG exports - one per sheet side
-    var sheetCount = BL.S.pages.length / 8;
+    var pps = BL.pagesPerSheet();
+    var sheetCount = Math.ceil(BL.S.pages.length / pps);
     for (var k = 1; k <= sheetCount; k++) {
       for (var side = 1; side <= 2; side++) {
         var pngItem = document.createElement('button');
@@ -750,6 +758,193 @@
     });
     menu.appendChild(jsonItem);
   }
+
+  // ============ Paper/Booklet UI Helpers ============
+  
+  /**
+   * Update booklet size options based on selected paper.
+   * A4 paper only allows A5 booklet (A4 booklet on A4 paper is invalid).
+   */
+  function updateBookletOptions() {
+    var segBooklet = document.getElementById('segBooklet');
+    if (!segBooklet) return;
+    
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    var btns = segBooklet.querySelectorAll('button');
+    var currentValid = false;
+    
+    btns.forEach(function(btn) {
+      var booklet = btn.dataset.v;
+      // A4 paper can only have A5 booklet
+      var valid = !(paper === 'A4' && booklet === 'A4');
+      btn.disabled = !valid;
+      btn.setAttribute('aria-disabled', !valid);
+      if (booklet === BL.S.booklet && valid) currentValid = true;
+    });
+    
+    // If current booklet is now invalid, switch to A5
+    if (!currentValid) {
+      BL.S.booklet = 'A5';
+    }
+    
+    // Update active state
+    btns.forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.v === BL.S.booklet);
+    });
+  }
+  
+  /**
+   * Update paper options based on selected booklet.
+   * A4 booklet cannot use A4 paper.
+   */
+  function updatePaperOptions() {
+    var segPaper = document.getElementById('segPaper');
+    if (!segPaper) return;
+    
+    var booklet = BL.S.booklet || 'A5';
+    var btns = segPaper.querySelectorAll('button');
+    var currentValid = false;
+    
+    btns.forEach(function(btn) {
+      var paper = btn.dataset.v;
+      // A4 booklet cannot use A4 paper
+      var valid = !(booklet === 'A4' && paper === 'A4');
+      btn.disabled = !valid;
+      btn.setAttribute('aria-disabled', !valid);
+      if (paper === (BL.S.paper || BL.S.sheet) && valid) currentValid = true;
+    });
+    
+    // If current paper is now invalid, switch to A3
+    if (!currentValid) {
+      BL.S.paper = 'A3';
+      BL.S.sheet = 'A3';
+    }
+    
+    // Update active state
+    btns.forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.v === (BL.S.paper || BL.S.sheet));
+    });
+  }
+  
+  /**
+   * Update page count buttons based on current format.
+   * 2x2 format: 8/16/24 pages; 1x2 format: 4/8/12 pages.
+   */
+  function updatePageCountButtons() {
+    var segPages = document.getElementById('segPages');
+    if (!segPages) return;
+    
+    var validCounts = BL.validPageCounts();
+    var pps = BL.pagesPerSheet();
+    var btns = segPages.querySelectorAll('button');
+    
+    // Remove existing buttons and create new ones
+    segPages.innerHTML = '';
+    
+    for (var i = 0; i < validCounts.length; i++) {
+      var count = validCounts[i];
+      var sheets = count / pps;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.v = count;
+      btn.textContent = count + ' pages · ' + sheets + ' sheet' + (sheets > 1 ? 's' : '');
+      btn.classList.toggle('active', BL.S.pages.length === count);
+      segPages.appendChild(btn);
+    }
+    
+    // Check if current page count is valid for new format
+    var currentCount = BL.S.pages.length;
+    if (validCounts.indexOf(currentCount) === -1) {
+      // Find nearest valid count
+      var nearest = validCounts[0];
+      for (var j = 0; j < validCounts.length; j++) {
+        if (validCounts[j] <= currentCount) {
+          nearest = validCounts[j];
+        }
+      }
+      // Adjust page count
+      if (nearest !== currentCount) {
+        if (nearest < currentCount) {
+          BL.S.pages.length = nearest;
+          if (BL.cur >= nearest) BL.cur = nearest - 1;
+        } else {
+          while (BL.S.pages.length < nearest) {
+            BL.S.pages.push(BL.newPage());
+          }
+        }
+        // Update button states
+        var newBtns = segPages.querySelectorAll('button');
+        newBtns.forEach(function(btn) {
+          btn.classList.toggle('active', parseInt(btn.dataset.v, 10) === BL.S.pages.length);
+        });
+      }
+    }
+  }
+  
+  /**
+   * Update the feed note below booklet section.
+   */
+  function updateFeedNote() {
+    var noteEl = document.getElementById('feedNote');
+    if (!noteEl) return;
+    
+    var format = BL.getFormat();
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    var paperO = BL.paperOrient();
+    
+    if (format === '1x2') {
+      noteEl.textContent = 'Feed ' + paper + ' ' + paperO + '.';
+      noteEl.style.display = '';
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
+  
+  /**
+   * Update all segment UI states.
+   */
+  function updateSegmentStates() {
+    // Paper
+    var segPaper = document.getElementById('segPaper');
+    if (segPaper) {
+      var paper = BL.S.paper || BL.S.sheet || 'A3';
+      segPaper.querySelectorAll('button').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.v === paper);
+      });
+    }
+    
+    // Booklet
+    var segBooklet = document.getElementById('segBooklet');
+    if (segBooklet) {
+      var booklet = BL.S.booklet || 'A5';
+      segBooklet.querySelectorAll('button').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.v === booklet);
+      });
+    }
+    
+    // Orientation
+    var segOrient = document.getElementById('segOrient');
+    if (segOrient) {
+      segOrient.querySelectorAll('button').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.v === BL.S.orient);
+      });
+    }
+    
+    // Page count
+    updatePageCountButtons();
+    
+    // Update booklet/paper option validity
+    updateBookletOptions();
+    updatePaperOptions();
+    
+    // Feed note
+    updateFeedNote();
+    
+    // Bleed
+    if (BL.updateBleedToggle) BL.updateBleedToggle();
+  }
+  
+  BL.updateSegmentStates = updateSegmentStates;
 
   // ============ Event handlers ============
   function setupTopBar() {
@@ -781,15 +976,35 @@
       });
     }
     
-    // Sheet segment
-    var segSheet = document.getElementById('segSheet');
-    if (segSheet) {
-      segSheet.addEventListener('click', function(e) {
+    // Paper segment
+    var segPaper = document.getElementById('segPaper');
+    if (segPaper) {
+      segPaper.addEventListener('click', function(e) {
         var btn = e.target.closest('button');
-        if (!btn) return;
+        if (!btn || btn.disabled) return;
         BL.pushUndo();
-        BL.S.sheet = btn.dataset.v;
+        BL.S.paper = btn.dataset.v;
+        BL.S.sheet = btn.dataset.v; // Keep legacy field in sync
+        updateBookletOptions();
+        updatePageCountButtons();
         if (BL.updateBleedToggle) BL.updateBleedToggle();
+        updateFeedNote();
+        renderAll();
+        BL.save();
+      });
+    }
+    
+    // Booklet segment
+    var segBooklet = document.getElementById('segBooklet');
+    if (segBooklet) {
+      segBooklet.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn || btn.disabled) return;
+        BL.pushUndo();
+        BL.S.booklet = btn.dataset.v;
+        updatePaperOptions();
+        updatePageCountButtons();
+        updateFeedNote();
         renderAll();
         BL.save();
       });
@@ -803,7 +1018,7 @@
         if (!btn) return;
         var val = parseInt(btn.dataset.v, 10);
         if (val > 0 && BL.canBleed && !BL.canBleed()) {
-          BL.toast('Bleed requires SRA3 stock. A3 has only 0.5mm spare per side.');
+          BL.toast('Bleed requires SRA3 stock.');
           return;
         }
         if (BL.setBleed) BL.setBleed(val);
@@ -817,14 +1032,14 @@
     if (segPages) {
       segPages.addEventListener('click', function(e) {
         var btn = e.target.closest('button');
-        if (!btn) return;
+        if (!btn || btn.disabled) return;
         var newCount = parseInt(btn.dataset.v, 10);
-        if (!BL.VALID_PAGE_COUNTS || BL.VALID_PAGE_COUNTS.indexOf(newCount) === -1) return;
+        var validCounts = BL.validPageCounts();
+        if (validCounts.indexOf(newCount) === -1) return;
         var oldCount = BL.S.pages.length;
         if (newCount === oldCount) return;
         
         if (newCount < oldCount) {
-          var diff = oldCount - newCount;
           if (!confirm('Changing to ' + newCount + ' pages will delete pages ' + (newCount + 1) + '-' + oldCount + '. Continue?')) {
             return;
           }
@@ -833,12 +1048,10 @@
         BL.pushUndo();
         
         if (newCount > oldCount) {
-          // Add pages
           for (var i = oldCount; i < newCount; i++) {
             BL.S.pages.push(BL.newPage());
           }
         } else {
-          // Remove pages
           BL.S.pages.length = newCount;
           if (BL.cur >= newCount) {
             BL.cur = newCount - 1;
@@ -1064,7 +1277,9 @@
           v: saved.v || defaults.v,
           title: saved.title || defaults.title,
           orient: saved.orient || defaults.orient,
-          sheet: saved.sheet || defaults.sheet,
+          paper: saved.paper || saved.sheet || defaults.paper,
+          booklet: saved.booklet || defaults.booklet,
+          sheet: saved.sheet || saved.paper || defaults.sheet,
           guide: saved.guide !== undefined ? saved.guide : defaults.guide,
           safe: saved.safe !== undefined ? saved.safe : defaults.safe,
           nums: saved.nums !== undefined ? saved.nums : defaults.nums,
@@ -1081,6 +1296,7 @@
       if (BL.setupSheets) BL.setupSheets();
       BL.setupPersist();
       if (BL.setupExport) BL.setupExport();
+      if (BL.updateSegmentStates) BL.updateSegmentStates();
       renderAll();
     });
   }
