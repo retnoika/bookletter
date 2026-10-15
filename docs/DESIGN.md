@@ -1,6 +1,6 @@
 # Bookletter Design Notes
 
-Bookletter is a browser-only tool for designing 8, 16, or 24-page A5 booklets that print on 1, 2, or 3 A3 sheets (both sides), fold twice, nest the sections, and become a hand-bound booklet.
+Bookletter is a browser-only tool for designing 8, 16, 24, 32, or 40-page A5 booklets that print on 1 to 5 A3 sheets (both sides), fold twice, nest the sections, and become a hand-bound booklet.
 
 ## Architecture
 
@@ -64,7 +64,7 @@ These are the authoritative facts for sheet layout and folding. Do not modify.
 
 ### Page Geometry
 
-- **8, 16, or 24 pages per booklet** (1, 2, or 3 A3 sheets)
+- **8, 16, 24, 32, or 40 pages per booklet** (1 to 5 A3 sheets)
 - Page = A5: portrait **148 × 210 mm** or landscape **210 × 148 mm**
 - One A3 sheet (**297 × 420 mm**) holds a 2×2 block of pages per side = 4 per side = **8 total per sheet**
 
@@ -126,6 +126,46 @@ Side 2: [[3+offset, 6+offset], [2+offset, 7+offset]]
 - Side 1: `[[21, 20], [24, 17]]` (top row rotated 180°)
 - Side 2: `[[19, 22], [18, 23]]` (top row rotated 180°)
 
+#### 32-page booklet (4 sheets)
+
+**Sheet 1** (pages 1-8, offset 0):
+- Side 1: `[[5, 4], [8, 1]]` (top row rotated 180°)
+- Side 2: `[[3, 6], [2, 7]]` (top row rotated 180°)
+
+**Sheet 2** (pages 9-16, offset 8):
+- Side 1: `[[13, 12], [16, 9]]` (top row rotated 180°)
+- Side 2: `[[11, 14], [10, 15]]` (top row rotated 180°)
+
+**Sheet 3** (pages 17-24, offset 16):
+- Side 1: `[[21, 20], [24, 17]]` (top row rotated 180°)
+- Side 2: `[[19, 22], [18, 23]]` (top row rotated 180°)
+
+**Sheet 4** (pages 25-32, offset 24):
+- Side 1: `[[29, 28], [32, 25]]` (top row rotated 180°)
+- Side 2: `[[27, 30], [26, 31]]` (top row rotated 180°)
+
+#### 40-page booklet (5 sheets)
+
+**Sheet 1** (pages 1-8, offset 0):
+- Side 1: `[[5, 4], [8, 1]]` (top row rotated 180°)
+- Side 2: `[[3, 6], [2, 7]]` (top row rotated 180°)
+
+**Sheet 2** (pages 9-16, offset 8):
+- Side 1: `[[13, 12], [16, 9]]` (top row rotated 180°)
+- Side 2: `[[11, 14], [10, 15]]` (top row rotated 180°)
+
+**Sheet 3** (pages 17-24, offset 16):
+- Side 1: `[[21, 20], [24, 17]]` (top row rotated 180°)
+- Side 2: `[[19, 22], [18, 23]]` (top row rotated 180°)
+
+**Sheet 4** (pages 25-32, offset 24):
+- Side 1: `[[29, 28], [32, 25]]` (top row rotated 180°)
+- Side 2: `[[27, 30], [26, 31]]` (top row rotated 180°)
+
+**Sheet 5** (pages 33-40, offset 32):
+- Side 1: `[[37, 36], [40, 33]]` (top row rotated 180°)
+- Side 2: `[[35, 38], [34, 39]]` (top row rotated 180°)
+
 ### Cell Placement
 
 ```
@@ -140,8 +180,8 @@ Each cell is the page size. Top-row cells rotate 180° about their center.
 - For single sheet: page 8 sits beside it at bottom-left
 - Top row ends up folded behind → prints upside down (rotated 180°)
 - Long-edge duplex flip mirrors back side left/right
-- For multi-sheet: each sheet carries 8 consecutive pages (sheet 1 = pages 1-8, sheet 2 = pages 9-16, etc.)
-- Sheets nest inside each other (sheet 1 = outermost, sheet N = innermost)
+- For multi-sheet: each sheet carries 8 consecutive pages; sheet k uses the base table with every page number shifted by +8 × (k − 1)
+- Sheets nest inside each other (sheet 1 = outermost, sheet 5 = innermost for a 40-page booklet)
 - Reading order runs straight through: 1, 2, 3, ..., N
 
 ### Margins and Bleed
@@ -161,7 +201,7 @@ For each sheet:
 
 For multi-sheet booklets:
 
-5. **Nest the sections**: Place sheet 2 (and sheet 3 for 24-page) inside sheet 1
+5. **Nest the sections**: Place each inner sheet inside the one before it (sheet 2 inside sheet 1, etc.; the last sheet is innermost)
 6. Stitch or staple through all layers along the spine (saddle-stitch binding)
 7. Reading order runs 1, 2, 3, ... straight through to the last page
 
@@ -196,6 +236,6 @@ Printing via the browser produces a 2-page PDF where each page corresponds to on
 - Crop and fold marks on SRA3
 - Bleed (0mm or 3mm) on SRA3; refused on A3
 - Fold instructions adapted to current stock and orientation
-- 8/16/24 page booklets (1/2/3 sheets) with nested saddle-stitch imposition
+- 8/16/24/32/40 page booklets (1-5 sheets) with nested saddle-stitch imposition
 - 300 DPI PNG export per sheet side
 - Print-safety warnings for safe-margin crossings and low-resolution photos

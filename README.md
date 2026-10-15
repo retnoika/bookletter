@@ -1,6 +1,6 @@
 # Bookletter
 
-Design an 8, 16, or 24-page A5 booklet and print it on 1, 2, or 3 A3 sheets, both sides. Fold twice, slit one fold, nest the sections (for multi-sheet), and you have a hand-bound booklet.
+Design an 8, 16, 24, 32, or 40-page A5 booklet and print it on 1 to 5 A3 sheets, both sides. Fold twice, slit one fold, nest the sections (for multi-sheet), and you have a hand-bound booklet.
 
 ## About
 
@@ -8,7 +8,7 @@ Bookletter turns one sheet of A3 paper into a hand-bound A5 booklet. Lay the pag
 
 It's meant for zines, mini-comics, programmes and other small runs where a home printer or a photocopier is the press. Everything runs in the browser: no server, no account, and nothing you make is uploaded anywhere. It works offline from a downloaded copy, and it's built to be used on an iPad or iPhone as well as a laptop.
 
-Design 8, 16 or 24 pages on 1, 2 or 3 sheets, portrait or landscape A5, and export any printed side as a 300 dpi PNG for a print shop.
+Design 8, 16, 24, 32, or 40 pages on 1 to 5 sheets, portrait or landscape A5, and export any printed side as a 300 dpi PNG for a print shop.
 
 ## Use online
 
@@ -25,7 +25,7 @@ Thank you for supporting my work on Bookletter.
 
 ## Designing your booklet
 
-1. **Choose size**: Select 8, 16, or 24 pages (1, 2, or 3 A3 sheets)
+1. **Choose size**: Select 8, 16, 24, 32, or 40 pages (1 to 5 A3 sheets)
 2. **Choose orientation**: Portrait A5 (148 × 210 mm) or Landscape A5 (210 × 148 mm)
 3. **Use layout templates**: Click one of the layout icons to add image and text frames to the current page
 4. **Add images**: Click an image frame to choose an image, or drag and drop images onto the page
@@ -66,7 +66,7 @@ Set the **paper size** to A3 (or SRA3) in the print dialog — if the dialog is 
 
 The sheet is flipped over like a book page — printed side down, left edge goes to the right.
 
-An 8-page booklet prints as 2 PDF pages (side 1 and side 2 of one A3 sheet). A 16-page booklet prints 4 pages, a 24-page booklet prints 6. Browser printing rounds the page box to whole pixels, so it can land within about 0.2 mm of the true sheet size; the content itself is placed in exact millimetres.
+An 8-page booklet prints as 2 PDF pages (side 1 and side 2 of one A3 sheet). A 16-page booklet prints 4 pages, a 24-page booklet prints 6, a 32-page booklet prints 8, and a 40-page booklet prints 10. Browser printing rounds the page box to whole pixels, so it can land within about 0.2 mm of the true sheet size; the content itself is placed in exact millimetres.
 
 ### Flip sheet backs
 
@@ -114,10 +114,10 @@ After printing each sheet:
 
 ### Multi-sheet nesting
 
-For 16 or 24-page booklets, after folding each sheet:
+For multi-sheet booklets (16, 24, 32, or 40 pages), after folding each sheet:
 
-5. **Nest the sections**: Place sheet 2 (and sheet 3 for 24-page) inside sheet 1
-6. The outermost section (sheet 1) has pages 1-8, sheet 2 has pages 9-16, sheet 3 has pages 17-24
+5. **Nest the sections**: Place each inner sheet inside the one before it (sheet 2 inside sheet 1, sheet 3 inside sheet 2, and so on)
+6. The outermost section (sheet 1) has pages 1-8; each subsequent sheet carries the next 8 pages (sheet 2 = pages 9-16, sheet 3 = pages 17-24, sheet 4 = pages 25-32, sheet 5 = pages 33-40)
 7. Stitch or staple through all layers along the spine
 
 This is saddle-stitch binding. Reading order runs straight through: 1, 2, 3, ... all the way to the last page.
@@ -128,9 +128,10 @@ This is saddle-stitch binding. Reading order runs straight through: 1, 2, 3, ...
 
 **Fold verification** — checks that imposition tables produce correct reading order:
 ```bash
-node tools/fold-check.js              # 8 pages (default)
+node tools/fold-check.js              # 8 pages (default, 2x2 format)
 node tools/fold-check.js --pages=16   # 16 pages
-node tools/fold-check.js --pages=24   # 24 pages
+node tools/fold-check.js --pages=40   # 40 pages (5 sheets)
+node tools/fold-check.js --all        # all valid page counts for 2x2
 ```
 
 **Icon verification** — checks that all `BL.icon()` calls have matching icon definitions:
