@@ -120,6 +120,7 @@ body {
 
 button {
   font: inherit;
+  font-size: 12px;
   color: inherit;
   cursor: pointer;
   border: none;
