@@ -2,6 +2,14 @@
 
 Design an 8, 16, or 24-page A5 booklet and print it on 1, 2, or 3 A3 sheets, both sides. Fold twice, slit one fold, nest the sections (for multi-sheet), and you have a hand-bound booklet.
 
+## About
+
+Bookletter turns one sheet of A3 paper into a hand-bound A5 booklet. Lay the pages out in the browser, print both sides, fold the sheet twice, slit one fold — and you have a booklet, with no trimming and no software to install.
+
+It's meant for zines, mini-comics, programmes and other small runs where a home printer or a photocopier is the press. Everything runs in the browser: no server, no account, and nothing you make is uploaded anywhere. It works offline from a downloaded copy, and it's built to be used on an iPad or iPhone as well as a laptop.
+
+Design 8, 16 or 24 pages on 1, 2 or 3 sheets, portrait or landscape A5, and export any printed side as a 300 dpi PNG for a print shop.
+
 ## Use online
 
 Open [retnoika.github.io/bookletter](https://retnoika.github.io/bookletter) in any modern browser.
@@ -22,10 +30,9 @@ Thank you for supporting my work on Bookletter.
 3. **Use layout templates**: Click one of the layout icons to add image and text frames to the current page
 4. **Add images**: Click an image frame to choose an image, or drag and drop images onto the page
 5. **Add text**: Double-click a text layer to edit it inline; press Escape to finish
-6. **Add shapes**: Use the Shape button to add decorative elements
-7. **Set backgrounds**: Choose from preset colors or pick a custom color
+6. **Set backgrounds**: Choose from preset colours or pick a custom colour — the colour picker is a hue wheel plus a saturation/brightness square, not just presets
 
-Click a layer to select it and see its controls in the inspector panel.
+Click a layer to select it and see its controls in the inspector panel. The **Layers panel** in the right column lists what is on the page with a thumbnail and a type badge, lets you reorder layers by dragging the grip, and keeps selection in sync with the canvas.
 
 ### Keyboard shortcuts
 
@@ -45,17 +52,25 @@ Click a layer to select it and see its controls in the inspector panel.
 
 ## Printing
 
-Print your finished design on A3 paper, both sides:
+Print your finished design on A3 or SRA3 paper, both sides:
 
-**Portrait A5 pages** → print on A3 portrait (297 × 420 mm), duplex flip on the **long edge**
+**Portrait A5 pages** → print on A3 portrait (297 × 420 mm) or SRA3 portrait (320 × 450 mm), duplex flip on the **long edge**
 
-**Landscape A5 pages** → print on A3 landscape (420 × 297 mm), duplex flip on the **short edge**
+**Landscape A5 pages** → print on A3 landscape (420 × 297 mm) or SRA3 landscape (450 × 320 mm), duplex flip on the **short edge**
+
+Set the **paper size** to A3 (or SRA3) in the print dialog — if the dialog is left on A4 the A3 content overflows and you get blank pages and a wrong reading order.
 
 1. **Scale**: 100%, no page scaling
 2. **Margins**: None
 3. **Background graphics**: On
 
-The app prints 2 pages per sheet (side 1 and side 2). For 16-page booklets, you'll print 4 pages; for 24-page booklets, 6 pages. Browser printing rounds the page box to whole pixels, so it can land within about 0.2 mm of the true sheet size; the content itself is placed in exact millimetres.
+The sheet is flipped over like a book page — printed side down, left edge goes to the right.
+
+An 8-page booklet prints as 2 PDF pages (side 1 and side 2 of one A3 sheet). A 16-page booklet prints 4 pages, a 24-page booklet prints 6. Browser printing rounds the page box to whole pixels, so it can land within about 0.2 mm of the true sheet size; the content itself is placed in exact millimetres.
+
+### Flip sheet backs
+
+If your printer's double-sided pages come out in the wrong order — side 1 looks correct but side 2 is mirrored — turn on **Flip sheet backs** in the print plan. This swaps the columns on side 2 to compensate for a printer whose duplex flip goes the other way. It is off by default and is a per-device setting stored in the browser, not part of a saved project.
 
 Do a test print on plain paper first with page numbers enabled.
 
@@ -72,11 +87,21 @@ When SRA3 stock is selected, the PNGs include crop marks at the corners and fold
 
 The **Print safety** panel in the editor checks your design for common print problems:
 
-- Layers that cross the safe margin (reports how far, in mm)
+- Text crossing the safe margin (reports how far, in mm)
+- Images crossing the safe margin (reported separately — an image bleeding off the edge is usually intentional, text getting trimmed is not)
 - Images placed larger than their resolution allows (reports effective dpi)
-- Shape strokes thinner than 0.25 mm
+
+You can set the safe margin width in millimetres using the input next to the Margin guide chip.
 
 When everything is fine, the panel says "No print-safety issues found."
+
+## Safe margin
+
+Some printers cannot print to the very edge of the sheet. Enter your printer's unprintable border in millimetres and the canvas draws a dashed blue line showing the safe area.
+
+The line only appears on the sides of a page that are at the edge of the sheet — the sides where the page is folded print fine, so the guide is not a full rectangle. On SRA3 the pages sit further inside the sheet, so a small printer margin often produces no border at all.
+
+The guide never prints or exports.
 
 ## Folding
 
@@ -114,3 +139,9 @@ node tools/icon-check.js
 ```
 
 Both tools exit 0 on success, 1 on failure.
+
+## Credits
+
+- **Fonts**: Fraunces and DM Sans (SIL Open Font License), vendored in `assets/fonts`
+- **Icons**: Tabler Icons (MIT License), vendored in `assets/icons`
+- **Bookletter**: MIT License
