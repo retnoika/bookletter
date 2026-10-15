@@ -286,20 +286,22 @@
   BL.clearHistory = clearHistory;
 
   // ============ Find layer helpers ============
-  function findLayer(pageIdx) {
+  function findLayer(id, pageIdx) {
     if (pageIdx === undefined) pageIdx = BL.cur;
-    return { 
-      idx: pageIdx, 
-      page: BL.S.pages[pageIdx]
-    };
+    var page = BL.S.pages[pageIdx];
+    if (!page) return null;
+    for (var i = 0; i < page.layers.length; i++) {
+      if (page.layers[i].id === id) return page.layers[i];
+    }
+    return null;
   }
 
-  function findLayerIndex(pageIdx) {
+  function findLayerIndex(id, pageIdx) {
     if (pageIdx === undefined) pageIdx = BL.cur;
-    if (BL.sel === null) return -1;
     var page = BL.S.pages[pageIdx];
+    if (!page) return -1;
     for (var i = 0; i < page.layers.length; i++) {
-      if (page.layers[i].id === BL.sel) return i;
+      if (page.layers[i].id === id) return i;
     }
     return -1;
   }
@@ -307,6 +309,7 @@
   function findLayerById(id, pageIdx) {
     if (pageIdx !== undefined) {
       var page = BL.S.pages[pageIdx];
+      if (!page) return null;
       for (var i = 0; i < page.layers.length; i++) {
         if (page.layers[i].id === id) return page.layers[i];
       }

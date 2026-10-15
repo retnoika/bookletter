@@ -121,9 +121,9 @@
       if (layerEl) pg.appendChild(layerEl);
     }
 
-    // Safe-area guide (two sides only based on imposition)
+    // Safe-area guide based on imposition (format-aware)
     if (isEdit && BL.S.guide && BL.pageSafeBands) {
-      var bands = BL.pageSafeBands(pageIdx, BL.S.pages.length, BL.S.orient, BL.S.sheet, BL.S.safe);
+      var bands = BL.pageSafeBands(pageIdx, BL.S.pages.length, BL.S.orient, BL.S.paper || BL.S.sheet, BL.S.safe, BL.S.booklet);
       // Draw lines only on unsafe sides with non-zero bands
       if (bands.top > 0) {
         var lineTop = el('div', 'guide guide-top');

@@ -471,8 +471,9 @@
     var pageNum = BL.cur + 1;
     var total = BL.S.pages.length;
     
-    // Format: 'Page x of y · A5 · 148 × 210 mm' (landscape: 210 × 148 mm)
-    cap.textContent = 'Page ' + pageNum + ' of ' + total + ' · A5 · ' + pw + ' × ' + ph + ' mm';
+    // Format: 'Page x of y · booklet · W × H mm'
+    var booklet = BL.S.booklet || 'A5';
+    cap.textContent = 'Page ' + pageNum + ' of ' + total + ' · ' + booklet + ' · ' + pw + ' × ' + ph + ' mm';
   }
 
   // ============ Update view toggle ============
@@ -971,6 +972,7 @@
         if (!btn) return;
         BL.pushUndo();
         BL.S.orient = btn.dataset.v;
+        updateFeedNote();
         renderAll();
         BL.save();
       });
