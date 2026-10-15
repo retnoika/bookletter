@@ -1527,9 +1527,9 @@ input {
 }
 
 .flip-backs-control {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: var(--border-w) solid var(--line);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: var(--border-w) solid var(--line);
 }
 
 .flip-backs-control .chip {
