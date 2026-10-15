@@ -863,6 +863,13 @@ input {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
+.canvas-footer {
+  display: flex;
+  justify-content: flex-start;
+  padding: 8px 0 0 0;
+  flex-shrink: 0;
+}
+
 .zoom-ctrl {
   display: inline-flex;
   height: 32px;
