@@ -2652,3 +2652,21 @@ input {
   margin: 8px 0 0 0;
   line-height: 1.4;
 }
+
+/* ============ Selected Page Add Buttons ============ */
+.add-btns-compact {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.add-btns-compact .btn-s {
+  flex: 1;
+  min-height: 44px;
+  font-size: 12px;
+}
+
+.inspector-content {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}

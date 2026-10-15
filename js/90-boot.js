@@ -1350,10 +1350,26 @@
             }
           }
           if (hasContent) {
-            var pageList = contentPages.length > 3 
-              ? contentPages.slice(0, 3).join(', ') + '...' 
-              : contentPages.join(', ');
-            BL.toast('Cannot reduce: page' + (contentPages.length > 1 ? 's ' : ' ') + pageList + ' ha' + (contentPages.length > 1 ? 've' : 's') + ' content. Clear them first.');
+            var newSheets = newCount / BL.pagesPerSheet();
+            var msg;
+            if (contentPages.length <= 5) {
+              // List pages explicitly
+              var pageList;
+              if (contentPages.length === 1) {
+                pageList = 'page ' + contentPages[0];
+              } else if (contentPages.length === 2) {
+                pageList = 'pages ' + contentPages[0] + ' and ' + contentPages[1];
+              } else {
+                pageList = 'pages ' + contentPages.slice(0, -1).join(', ') + ' and ' + contentPages[contentPages.length - 1];
+              }
+              msg = 'Cannot reduce to ' + newSheets + ' sheet' + (newSheets > 1 ? 's' : '') + ': ' + pageList + ' ha' + (contentPages.length > 1 ? 've' : 's') + ' content. Clear them first.';
+            } else {
+              // Count and range
+              var minPage = Math.min.apply(null, contentPages);
+              var maxPage = Math.max.apply(null, contentPages);
+              msg = 'Cannot reduce to ' + newSheets + ' sheet' + (newSheets > 1 ? 's' : '') + ': ' + contentPages.length + ' pages have content (pages ' + minPage + '-' + maxPage + '). Clear them first.';
+            }
+            BL.toast(msg);
             return;
           }
         }
