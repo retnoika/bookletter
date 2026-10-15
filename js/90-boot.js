@@ -894,6 +894,24 @@
         BL.save();
       });
     }
+
+    // Flip sheet backs toggle (device workaround)
+    var tFlipBacks = document.getElementById('tFlipBacks');
+    if (tFlipBacks) {
+      // Initialize from localStorage
+      var isOn = BL.getFlipSheetBacks();
+      tFlipBacks.setAttribute('aria-pressed', isOn);
+      tFlipBacks.classList.toggle('active', isOn);
+      
+      tFlipBacks.addEventListener('click', function() {
+        var newVal = !BL.getFlipSheetBacks();
+        BL.setFlipSheetBacks(newVal);
+        tFlipBacks.setAttribute('aria-pressed', newVal);
+        tFlipBacks.classList.toggle('active', newVal);
+        if (BL.renderSheets) BL.renderSheets();
+        if (BL.buildPrintArea) BL.buildPrintArea();
+      });
+    }
     // Setup dropdowns
     setupDropdowns();
   }

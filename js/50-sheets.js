@@ -23,6 +23,17 @@
   BL.getBleed = function() { return bleed; };
   BL.setBleed = function(v) { bleed = v; };
 
+  // ============ Flip sheet backs (device workaround) ============
+  // Stored in localStorage, NOT in the project file.
+  // When ON, side 2's panel columns are swapped (col 0 ↔ col 1).
+  var flipSheetBacks = localStorage.getItem('flipSheetBacks') === 'true';
+
+  BL.getFlipSheetBacks = function() { return flipSheetBacks; };
+  BL.setFlipSheetBacks = function(v) {
+    flipSheetBacks = !!v;
+    localStorage.setItem('flipSheetBacks', flipSheetBacks ? 'true' : 'false');
+  };
+
   // ============ Check if bleed is allowed ============
   function canBleed() {
     // A3 has only ~0.5mm spare per side (1mm total), no room for bleed
@@ -81,12 +92,15 @@
         var pageIdx = pageNum - 1;
         var rotated = r === imp.rotatedRow;
 
+        // For side 2, swap column positions when flipSheetBacks is enabled
+        var posCol = (side === 2 && flipSheetBacks) ? (1 - c) : c;
+
         var cell = BL.el('div', 'cell' + (rotated ? ' rot' : ''));
-        cell.style.left = 'calc(var(--mm) * ' + (ox + c * pw) + ')';
+        cell.style.left = 'calc(var(--mm) * ' + (ox + posCol * pw) + ')';
         cell.style.top = 'calc(var(--mm) * ' + (oy + r * ph) + ')';
         cell.dataset.page = pageNum;
         cell.dataset.row = r;
-        cell.dataset.col = c;
+        cell.dataset.col = posCol;
 
         // Render the page content
         var pageEl = BL.renderPage(pageIdx, { nums: BL.S.nums });
@@ -98,7 +112,7 @@
         if (opts.tags) {
           var tag = BL.el('div', 'tag');
           tag.textContent = rotated ? pageNum + ' ↻' : String(pageNum);
-          tag.style.left = 'calc(var(--mm) * ' + (ox + c * pw) + ')';
+          tag.style.left = 'calc(var(--mm) * ' + (ox + posCol * pw) + ')';
           tag.style.top = 'calc(var(--mm) * ' + (oy + r * ph) + ')';
           sheetEl.appendChild(tag);
         }

@@ -1526,6 +1526,23 @@ input {
   line-height: 1.45;
 }
 
+.flip-backs-control {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: var(--border-w) solid var(--line);
+}
+
+.flip-backs-control .chip {
+  min-height: 40px;
+}
+
+.flip-backs-control .helper-text {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin: 8px 0 0 0;
+  line-height: 1.4;
+}
+
 /* ============ Export Buttons ============ */
 .export-btns {
   margin-top: 16px;
