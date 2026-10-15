@@ -497,39 +497,6 @@
       titleInput.value = BL.S.title;
     }
     
-    // Orientation
-    var segOrient = document.getElementById('segOrient');
-    if (segOrient) {
-      var btns = segOrient.querySelectorAll('button');
-      for (var i = 0; i < btns.length; i++) {
-        var isActive = btns[i].dataset.v === BL.S.orient;
-        btns[i].classList.toggle('active', isActive);
-        btns[i].setAttribute('aria-pressed', isActive);
-      }
-    }
-    
-    // Sheet
-    var segSheet = document.getElementById('segSheet');
-    if (segSheet) {
-      var btns = segSheet.querySelectorAll('button');
-      for (var i = 0; i < btns.length; i++) {
-        var isActive = btns[i].dataset.v === BL.S.sheet;
-        btns[i].classList.toggle('active', isActive);
-        btns[i].setAttribute('aria-pressed', isActive);
-      }
-    }
-    
-    // Bleed
-    var segBleed = document.getElementById('segBleed');
-    if (segBleed && BL.getBleed !== undefined) {
-      var btns = segBleed.querySelectorAll('button');
-      for (var i = 0; i < btns.length; i++) {
-        var isActive = parseInt(btns[i].dataset.v, 10) === BL.getBleed();
-        btns[i].classList.toggle('active', isActive);
-        btns[i].setAttribute('aria-pressed', isActive);
-      }
-    }
-    
     // Page count segment
     var segPages = document.getElementById('segPages');
     if (segPages) {
@@ -902,50 +869,223 @@
   }
   
   /**
-   * Update all segment UI states.
+   * Update all segment UI states (now just page count and format display).
    */
   function updateSegmentStates() {
-    // Paper
-    var segPaper = document.getElementById('segPaper');
-    if (segPaper) {
-      var paper = BL.S.paper || BL.S.sheet || 'A3';
-      segPaper.querySelectorAll('button').forEach(function(btn) {
-        btn.classList.toggle('active', btn.dataset.v === paper);
-      });
-    }
-    
-    // Booklet
-    var segBooklet = document.getElementById('segBooklet');
-    if (segBooklet) {
-      var booklet = BL.S.booklet || 'A5';
-      segBooklet.querySelectorAll('button').forEach(function(btn) {
-        btn.classList.toggle('active', btn.dataset.v === booklet);
-      });
-    }
-    
-    // Orientation
-    var segOrient = document.getElementById('segOrient');
-    if (segOrient) {
-      segOrient.querySelectorAll('button').forEach(function(btn) {
-        btn.classList.toggle('active', btn.dataset.v === BL.S.orient);
-      });
-    }
-    
     // Page count
     updatePageCountButtons();
     
-    // Update booklet/paper option validity
-    updateBookletOptions();
-    updatePaperOptions();
-    
-    // Feed note
-    updateFeedNote();
-    
-    // Bleed
-    if (BL.updateBleedToggle) BL.updateBleedToggle();
+    // Format display (read-only line in rail)
+    updateFormatDisplay();
   }
   
   BL.updateSegmentStates = updateSegmentStates;
+  
+  /**
+   * Update the read-only format display in the rail.
+   */
+  function updateFormatDisplay() {
+    var formatText = document.getElementById('formatText');
+    if (!formatText) return;
+    
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    var booklet = BL.S.booklet || 'A5';
+    var orient = BL.S.orient || 'portrait';
+    var paperOrient = BL.paperOrient ? BL.paperOrient() : 'portrait';
+    
+    formatText.textContent = paper + ' paper → ' + booklet + ' ' + orient + ' · feed ' + paper + ' ' + paperOrient;
+  }
+  
+  BL.updateFormatDisplay = updateFormatDisplay;
+  
+  // ============ Setup Panel ============
+  var setupState = {
+    paper: 'A3',
+    booklet: 'A5',
+    orient: 'portrait'
+  };
+  
+  function showSetupPanel() {
+    var overlay = document.getElementById('setupOverlay');
+    if (overlay) {
+      // Reset to defaults
+      setupState.paper = 'A3';
+      setupState.booklet = 'A5';
+      setupState.orient = 'portrait';
+      updateSetupUI();
+      updateSetupSummary();
+      overlay.hidden = false;
+    }
+  }
+  
+  function hideSetupPanel() {
+    var overlay = document.getElementById('setupOverlay');
+    if (overlay) {
+      overlay.hidden = true;
+    }
+  }
+  
+  BL.showSetupPanel = showSetupPanel;
+  BL.hideSetupPanel = hideSetupPanel;
+  
+  function updateSetupUI() {
+    // Update paper buttons
+    var segPaper = document.getElementById('setupPaper');
+    if (segPaper) {
+      segPaper.querySelectorAll('button').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.v === setupState.paper);
+      });
+    }
+    
+    // Update booklet buttons (filter by paper)
+    var segBooklet = document.getElementById('setupBooklet');
+    if (segBooklet) {
+      segBooklet.querySelectorAll('button').forEach(function(btn) {
+        var bk = btn.dataset.v;
+        // A3 offers A4 and A5; A4 offers A5 only
+        var valid = setupState.paper === 'A3' || (setupState.paper === 'A4' && bk === 'A5');
+        btn.disabled = !valid;
+        btn.classList.toggle('active', btn.dataset.v === setupState.booklet && valid);
+        
+        // If current booklet is invalid for this paper, switch to largest valid
+        if (btn.dataset.v === setupState.booklet && !valid) {
+          setupState.booklet = 'A5'; // Always valid
+        }
+      });
+      
+      // Re-check active state after potential switch
+      segBooklet.querySelectorAll('button').forEach(function(btn) {
+        var bk = btn.dataset.v;
+        var valid = setupState.paper === 'A3' || (setupState.paper === 'A4' && bk === 'A5');
+        btn.classList.toggle('active', btn.dataset.v === setupState.booklet && valid);
+      });
+    }
+    
+    // Update orientation buttons
+    var segOrient = document.getElementById('setupOrient');
+    if (segOrient) {
+      segOrient.querySelectorAll('button').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.v === setupState.orient);
+      });
+    }
+  }
+  
+  function updateSetupSummary() {
+    var summary = document.getElementById('setupSummary');
+    if (!summary) return;
+    
+    var paper = setupState.paper;
+    var booklet = setupState.booklet;
+    var orient = setupState.orient;
+    
+    // Determine format
+    var format = (booklet === 'A5' && paper === 'A3') ? '2x2' : '1x2';
+    var pps = format === '2x2' ? 8 : 4;
+    
+    // Determine paper orientation (opposite for 1x2)
+    var paperOrient = format === '1x2' 
+      ? (orient === 'portrait' ? 'landscape' : 'portrait')
+      : orient;
+    
+    // Build summary text
+    var foldText = format === '2x2' 
+      ? 'fold twice, slit once' 
+      : 'one fold, no slit';
+    
+    summary.textContent = pps + ' ' + booklet + ' pages per sheet · ' + foldText + ' · feed ' + paper + ' ' + paperOrient;
+  }
+  
+  function setupSetupPanel() {
+    var overlay = document.getElementById('setupOverlay');
+    if (!overlay) return;
+    
+    // Paper segment
+    var segPaper = document.getElementById('setupPaper');
+    if (segPaper) {
+      segPaper.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        setupState.paper = btn.dataset.v;
+        // Default to largest valid booklet for this paper
+        if (setupState.paper === 'A3') {
+          setupState.booklet = 'A4'; // A4 is larger than A5
+        } else {
+          setupState.booklet = 'A5'; // Only A5 valid for A4 paper
+        }
+        updateSetupUI();
+        updateSetupSummary();
+      });
+    }
+    
+    // Booklet segment
+    var segBooklet = document.getElementById('setupBooklet');
+    if (segBooklet) {
+      segBooklet.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn || btn.disabled) return;
+        setupState.booklet = btn.dataset.v;
+        updateSetupUI();
+        updateSetupSummary();
+      });
+    }
+    
+    // Orientation segment
+    var segOrient = document.getElementById('setupOrient');
+    if (segOrient) {
+      segOrient.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        setupState.orient = btn.dataset.v;
+        updateSetupUI();
+        updateSetupSummary();
+      });
+    }
+    
+    // Create button
+    var btnCreate = document.getElementById('setupCreate');
+    if (btnCreate) {
+      btnCreate.addEventListener('click', function() {
+        createNewBooklet(setupState.paper, setupState.booklet, setupState.orient);
+        hideSetupPanel();
+      });
+    }
+  }
+  
+  function createNewBooklet(paper, booklet, orient) {
+    // Determine page count based on format
+    var format = (booklet === 'A5' && paper === 'A3') ? '2x2' : '1x2';
+    var pps = format === '2x2' ? 8 : 4;
+    
+    // Create new state
+    var defaults = BL.defaultState();
+    BL.S = {
+      v: defaults.v,
+      title: 'untitled booklet',
+      orient: orient,
+      paper: paper,
+      booklet: booklet,
+      sheet: paper,
+      guide: defaults.guide,
+      safe: defaults.safe,
+      nums: defaults.nums,
+      pages: []
+    };
+    
+    // Add pages
+    for (var i = 0; i < pps; i++) {
+      BL.S.pages.push(BL.newPage());
+    }
+    
+    BL.cur = 0;
+    BL.sel = null;
+    BL.clearHistory();
+    activeSheet = 1;
+    
+    if (BL.updateSegmentStates) BL.updateSegmentStates();
+    renderAll();
+    BL.save();
+    BL.toast('New booklet created.');
+  }
 
   // ============ Event handlers ============
   function setupTopBar() {
@@ -964,68 +1104,14 @@
       });
     }
     
-    // Orientation segment
-    var segOrient = document.getElementById('segOrient');
-    if (segOrient) {
-      segOrient.addEventListener('click', function(e) {
-        var btn = e.target.closest('button');
-        if (!btn) return;
-        BL.pushUndo();
-        BL.S.orient = btn.dataset.v;
-        updateFeedNote();
-        renderAll();
-        BL.save();
-      });
-    }
+    // Setup panel handlers
+    setupSetupPanel();
     
-    // Paper segment
-    var segPaper = document.getElementById('segPaper');
-    if (segPaper) {
-      segPaper.addEventListener('click', function(e) {
-        var btn = e.target.closest('button');
-        if (!btn || btn.disabled) return;
-        BL.pushUndo();
-        BL.S.paper = btn.dataset.v;
-        BL.S.sheet = btn.dataset.v; // Keep legacy field in sync
-        updateBookletOptions();
-        updatePageCountButtons();
-        if (BL.updateBleedToggle) BL.updateBleedToggle();
-        updateFeedNote();
-        renderAll();
-        BL.save();
-      });
-    }
-    
-    // Booklet segment
-    var segBooklet = document.getElementById('segBooklet');
-    if (segBooklet) {
-      segBooklet.addEventListener('click', function(e) {
-        var btn = e.target.closest('button');
-        if (!btn || btn.disabled) return;
-        BL.pushUndo();
-        BL.S.booklet = btn.dataset.v;
-        updatePaperOptions();
-        updatePageCountButtons();
-        updateFeedNote();
-        renderAll();
-        BL.save();
-      });
-    }
-    
-    // Bleed segment
-    var segBleed = document.getElementById('segBleed');
-    if (segBleed) {
-      segBleed.addEventListener('click', function(e) {
-        var btn = e.target.closest('button');
-        if (!btn) return;
-        var val = parseInt(btn.dataset.v, 10);
-        if (val > 0 && BL.canBleed && !BL.canBleed()) {
-          BL.toast('Bleed requires SRA3 stock.');
-          return;
-        }
-        if (BL.setBleed) BL.setBleed(val);
-        renderAll();
-        BL.save();
+    // New booklet link in rail
+    var btnNewBooklet = document.getElementById('btnNewBooklet');
+    if (btnNewBooklet) {
+      btnNewBooklet.addEventListener('click', function() {
+        showSetupPanel();
       });
     }
     
@@ -1272,8 +1358,10 @@
   // ============ Boot ============
   function boot() {
     BL.loadSaved().then(function(saved) {
+      var isFirstVisit = !saved;
+      
       if (saved) {
-        // Merge with defaults
+        // Merge with defaults (supports legacy projects with SRA3/bleed)
         var defaults = BL.defaultState();
         BL.S = {
           v: saved.v || defaults.v,
@@ -1285,6 +1373,7 @@
           guide: saved.guide !== undefined ? saved.guide : defaults.guide,
           safe: saved.safe !== undefined ? saved.safe : defaults.safe,
           nums: saved.nums !== undefined ? saved.nums : defaults.nums,
+          bleed: saved.bleed !== undefined ? saved.bleed : 0,
           pages: saved.pages
         };
       }
@@ -1300,6 +1389,11 @@
       if (BL.setupExport) BL.setupExport();
       if (BL.updateSegmentStates) BL.updateSegmentStates();
       renderAll();
+      
+      // Show setup panel for first-time visitors
+      if (isFirstVisit) {
+        showSetupPanel();
+      }
     });
   }
 

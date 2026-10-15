@@ -347,17 +347,22 @@
 
   // ============ New booklet ============
   function newBooklet() {
-    if (!confirm('Create a new booklet? Unsaved changes will be lost.')) {
-      return;
+    // Show setup panel instead of immediate reset
+    if (BL.showSetupPanel) {
+      BL.showSetupPanel();
+    } else {
+      // Fallback if setup panel not available
+      if (!confirm('Create a new booklet? Unsaved changes will be lost.')) {
+        return;
+      }
+      BL.S = BL.defaultState();
+      BL.cur = 0;
+      BL.sel = null;
+      BL.clearHistory();
+      BL.renderAll();
+      BL.save();
+      BL.toast('New booklet created.');
     }
-    
-    BL.S = BL.defaultState();
-    BL.cur = 0;
-    BL.sel = null;
-    BL.clearHistory();
-    BL.renderAll();
-    BL.save();
-    BL.toast('New booklet created.');
   }
 
   BL.newBooklet = newBooklet;
@@ -368,9 +373,9 @@
   }
 
   function importState(data) {
-    var error = validateProject(data);
-    if (error) {
-      throw new Error(error);
+    var result = validateProject(data);
+    if (result.error) {
+      throw new Error(result.error);
     }
     
     var defaults = BL.defaultState();
@@ -378,7 +383,9 @@
       v: data.v || defaults.v,
       title: data.title || defaults.title,
       orient: data.orient || defaults.orient,
-      sheet: data.sheet || defaults.sheet,
+      paper: data.paper || data.sheet || defaults.paper,
+      booklet: data.booklet || defaults.booklet,
+      sheet: data.sheet || data.paper || defaults.sheet,
       guide: data.guide !== undefined ? data.guide : defaults.guide,
       safe: data.safe !== undefined ? data.safe : defaults.safe,
       nums: data.nums !== undefined ? data.nums : defaults.nums,
