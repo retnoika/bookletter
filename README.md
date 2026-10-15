@@ -87,7 +87,7 @@ When SRA3 stock is selected, the PNGs include crop marks at the corners and fold
 
 The **Print safety** panel in the editor checks your design for common print problems:
 
-- Text crossing the safe margin (reports how far, in mm)
+- Text crossing the safe margin (reported as a count of layers, along with the margin width)
 - Images crossing the safe margin (reported separately — an image bleeding off the edge is usually intentional, text getting trimmed is not)
 - Images placed larger than their resolution allows (reports effective dpi)
 
