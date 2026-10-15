@@ -563,6 +563,7 @@ input {
 /* ============ Segmented Controls ============ */
 .seg {
   display: inline-flex;
+  flex-wrap: nowrap;
   border: var(--border-w) solid var(--line-strong);
   overflow: hidden;
 }
@@ -608,6 +609,17 @@ input {
 
 .seg-vertical button:last-child {
   border-bottom: none;
+}
+
+/* Number of Sheets - horizontal row with equal-width touch targets */
+#segPages {
+  display: flex;
+  width: 100%;
+}
+#segPages button {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 0;
 }
 
 /* ============ Sheet Controls ============ */
