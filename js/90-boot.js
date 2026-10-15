@@ -789,6 +789,7 @@
         if (!btn) return;
         BL.pushUndo();
         BL.S.sheet = btn.dataset.v;
+        if (BL.updateBleedToggle) BL.updateBleedToggle();
         renderAll();
         BL.save();
       });

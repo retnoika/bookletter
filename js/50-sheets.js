@@ -376,6 +376,7 @@
         BL.pushUndo();
         BL.S.sheet = val;
         updateSheetToggle();
+        updateBleedToggle();
         BL.renderSheets();
         BL.updateSteps();
         BL.save();
@@ -419,12 +420,20 @@
     var segBleed = document.getElementById('segBleed');
     if (!segBleed) return;
     var btns = segBleed.querySelectorAll('button[data-v]');
+    var canUseBleed = canBleed();
     btns.forEach(function(btn) {
-      btn.setAttribute('aria-pressed', parseInt(btn.dataset.v, 10) === bleed);
+      var val = parseInt(btn.dataset.v, 10);
+      btn.setAttribute('aria-pressed', val === bleed);
+      // Disable 3mm when A3 is selected (no room for bleed)
+      if (val === 3) {
+        btn.disabled = !canUseBleed;
+        btn.setAttribute('aria-disabled', !canUseBleed);
+      }
     });
   }
 
   BL.setupSheets = setupSheets;
   BL.updateSheetToggle = updateSheetToggle;
+  BL.updateBleedToggle = updateBleedToggle;
 
 })();

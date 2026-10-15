@@ -357,6 +357,13 @@ input {
   margin-bottom: 8px;
 }
 
+.helper-text {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin: 8px 0 0 0;
+  line-height: 1.4;
+}
+
 .display-headline {
   font: 28px/1.15 var(--f-serif);
   color: var(--accent);
@@ -579,6 +586,12 @@ input {
   color: var(--accent-on);
 }
 
+.seg button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .seg-view {
   margin-right: auto;
 }
@@ -605,6 +618,16 @@ input {
 
 .sheet-controls .seg {
   flex-shrink: 0;
+}
+
+.bleed-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bleed-control .micro-label {
+  margin-bottom: 0;
 }
 
 /* ============ Paper Swatches ============ */
