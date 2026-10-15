@@ -49,7 +49,7 @@
    * Get valid page counts for current format.
    */
   function validPageCounts() {
-    return getFormat() === '2x2' ? [8, 16, 24] : [4, 8, 12];
+    return getFormat() === '2x2' ? [8, 16, 24, 32, 40] : [4, 8, 12, 16, 20];
   }
   BL.validPageCounts = validPageCounts;
 

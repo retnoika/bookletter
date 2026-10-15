@@ -68,20 +68,24 @@
           <input type="text" class="project-name-input" id="titleInput" value="untitled booklet" aria-label="Project name">
         </section>
 
-        <section class="rail-section">
-          <h3 class="section-title">Sections</h3>
-          <div class="seg seg-vertical" id="segPages">
-            <button data-v="8">8 pages · 1 sheet</button>
-            <button data-v="16">16 pages · 2 sheets</button>
-            <button data-v="24">24 pages · 3 sheets</button>
-          </div>
-        </section>
-
         <section class="rail-section format-section">
+          <h3 class="section-title">Your Booklet</h3>
           <div class="format-display" id="formatDisplay">
             <span class="format-text" id="formatText">A3 paper → A5 portrait · feed A3 portrait</span>
             <button type="button" class="btn-link" id="btnNewBooklet">New booklet</button>
           </div>
+        </section>
+
+        <section class="rail-section">
+          <h3 class="section-title">Number of Sheets</h3>
+          <div class="seg seg-vertical" id="segPages">
+            <button data-v="8">1</button>
+            <button data-v="16">2</button>
+            <button data-v="24">3</button>
+            <button data-v="32">4</button>
+            <button data-v="40">5</button>
+          </div>
+          <p class="helper-text" id="sheetHelper">1 sheet of A3 gives you 8 pages booklet</p>
         </section>
 
         <section class="rail-section">
@@ -101,37 +105,25 @@
         </section>
 
         <section class="rail-section">
-          <h3 class="section-title">Add Layers</h3>
-          <div class="add-btns">
-            <button class="btn-s btn-icon" id="bAddPhoto">
-              <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/></svg>
-              <span>Add Image</span>
-            </button>
-            <button class="btn-s btn-icon" id="bAddText">
-              <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20l3 0"/><path d="M14 20l7 0"/><path d="M6.9 15l6.9 0"/><path d="M10.2 6.3l5.8 13.7"/><path d="M5 20l6 -16l2 0l7 16"/></svg>
-              <span>Add Text</span>
-            </button>
+          <h3 class="section-title">Page Settings</h3>
+          <div class="settings-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chkGuide">
+              <span>Margin guide</span>
+            </label>
+            <div class="safe-input-wrap">
+              <input type="number" id="safeInput" inputmode="decimal" min="0" max="20" step="0.1" aria-label="Safe margin width in mm">
+              <span class="safe-unit">mm</span>
+            </div>
+          </div>
+          <div class="settings-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chkNums">
+              <span>Page numbers</span>
+            </label>
           </div>
         </section>
 
-        <section class="rail-section">
-          <div class="chip-row">
-            <div class="chip-with-input">
-              <button class="chip chip-icon" id="tGuide">
-                <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 8v-2a2 2 0 0 1 2 -2h2"/><path d="M4 16v2a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M16 20h2a2 2 0 0 0 2 -2v-2"/></svg>
-                <span>Margin guide</span>
-              </button>
-              <div class="safe-input-wrap">
-                <input type="number" id="safeInput" inputmode="decimal" min="0" max="20" step="0.1" aria-label="Safe margin width in mm">
-                <span class="safe-unit">mm</span>
-              </div>
-            </div>
-            <button class="chip chip-icon" id="tNums">
-              <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 17l2 -2m0 0l2 2m-2 -2v5"/><path d="M4 7v-2a2 2 0 0 1 2 -2h2"/><path d="M16 3h2a2 2 0 0 1 2 2v2"/><path d="M16 21h2a2 2 0 0 0 2 -2v-2"/><path d="M13 7h2.5l-2.5 5h2.5"/><path d="M13 17a2 2 0 0 0 2 2a2 2 0 0 0 2 -2a2 2 0 0 0 -2 -2a2 2 0 0 1 2 -2a2 2 0 0 1 2 2"/></svg>
-              <span>Page numbers</span>
-            </button>
-          </div>
-        </section>
 
         <p class="rail-credit">Icon by <a href="https://www.flaticon.com/free-icon/service_13830467" target="_blank" rel="noopener">pikepicture on Flaticon</a></p>
       </aside>

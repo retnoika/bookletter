@@ -633,6 +633,17 @@
       safeInput.value = BL.S.safe;
     }
     
+    // Sync rail checkboxes with state
+    var chkGuide = document.getElementById('chkGuide');
+    if (chkGuide) {
+      chkGuide.checked = BL.S.guide;
+    }
+    
+    var chkNums = document.getElementById('chkNums');
+    if (chkNums) {
+      chkNums.checked = BL.S.nums;
+    }
+    
     // Update page heading
     var toolHead = document.getElementById('toolHead');
     if (toolHead) {
@@ -913,7 +924,6 @@
     
     var validCounts = BL.validPageCounts();
     var pps = BL.pagesPerSheet();
-    var btns = segPages.querySelectorAll('button');
     
     // Remove existing buttons and create new ones
     segPages.innerHTML = '';
@@ -924,38 +934,29 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.dataset.v = count;
-      btn.textContent = count + ' pages · ' + sheets + ' sheet' + (sheets > 1 ? 's' : '');
+      btn.textContent = sheets; // Just the sheet number
       btn.classList.toggle('active', BL.S.pages.length === count);
       segPages.appendChild(btn);
     }
     
-    // Check if current page count is valid for new format
-    var currentCount = BL.S.pages.length;
-    if (validCounts.indexOf(currentCount) === -1) {
-      // Find nearest valid count
-      var nearest = validCounts[0];
-      for (var j = 0; j < validCounts.length; j++) {
-        if (validCounts[j] <= currentCount) {
-          nearest = validCounts[j];
-        }
-      }
-      // Adjust page count
-      if (nearest !== currentCount) {
-        if (nearest < currentCount) {
-          BL.S.pages.length = nearest;
-          if (BL.cur >= nearest) BL.cur = nearest - 1;
-        } else {
-          while (BL.S.pages.length < nearest) {
-            BL.S.pages.push(BL.newPage());
-          }
-        }
-        // Update button states
-        var newBtns = segPages.querySelectorAll('button');
-        newBtns.forEach(function(btn) {
-          btn.classList.toggle('active', parseInt(btn.dataset.v, 10) === BL.S.pages.length);
-        });
-      }
-    }
+    // Update helper text
+    updateSheetHelper();
+  }
+  
+  /**
+   * Update the helper text below sheet count buttons.
+   */
+  function updateSheetHelper() {
+    var helper = document.getElementById('sheetHelper');
+    if (!helper) return;
+    
+    var pps = BL.pagesPerSheet();
+    var sheets = Math.ceil(BL.S.pages.length / pps);
+    var pages = sheets * pps;
+    var paper = BL.S.paper || BL.S.sheet || 'A3';
+    
+    helper.textContent = sheets + ' sheet' + (sheets > 1 ? 's' : '') + 
+      ' of ' + paper + ' gives you ' + pages + ' pages booklet';
   }
   
   /**
@@ -1338,8 +1339,21 @@
         var oldCount = BL.S.pages.length;
         if (newCount === oldCount) return;
         
+        // Check for content on pages that would be removed
         if (newCount < oldCount) {
-          if (!confirm('Changing to ' + newCount + ' pages will delete pages ' + (newCount + 1) + '-' + oldCount + '. Continue?')) {
+          var hasContent = false;
+          var contentPages = [];
+          for (var i = newCount; i < oldCount; i++) {
+            if (BL.S.pages[i] && BL.S.pages[i].layers && BL.S.pages[i].layers.length > 0) {
+              hasContent = true;
+              contentPages.push(i + 1);
+            }
+          }
+          if (hasContent) {
+            var pageList = contentPages.length > 3 
+              ? contentPages.slice(0, 3).join(', ') + '...' 
+              : contentPages.join(', ');
+            BL.toast('Cannot reduce: page' + (contentPages.length > 1 ? 's ' : ' ') + pageList + ' ha' + (contentPages.length > 1 ? 've' : 's') + ' content. Clear them first.');
             return;
           }
         }
@@ -1358,6 +1372,7 @@
         }
         
         activeSheet = getSheetForPage(BL.cur);
+        if (BL.updateSegmentStates) BL.updateSegmentStates();
         renderAll();
         BL.save();
       });
@@ -1400,6 +1415,32 @@
     if (tNums) {
       tNums.addEventListener('click', function() {
         BL.S.nums = !BL.S.nums;
+        updateTopBar();
+        renderStrip();
+        renderEditor();
+        if (BL.renderSheets) BL.renderSheets();
+        BL.save();
+      });
+    }
+    
+    // Rail checkbox: Margin guide
+    var chkGuide = document.getElementById('chkGuide');
+    if (chkGuide) {
+      chkGuide.checked = BL.S.guide;
+      chkGuide.addEventListener('change', function() {
+        BL.S.guide = chkGuide.checked;
+        updateTopBar();
+        renderEditor();
+        BL.save();
+      });
+    }
+    
+    // Rail checkbox: Page numbers
+    var chkNums = document.getElementById('chkNums');
+    if (chkNums) {
+      chkNums.checked = BL.S.nums;
+      chkNums.addEventListener('change', function() {
+        BL.S.nums = chkNums.checked;
         updateTopBar();
         renderStrip();
         renderEditor();
