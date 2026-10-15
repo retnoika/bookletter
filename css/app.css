@@ -761,12 +761,38 @@ input {
 
 /* ============ Center Rail ============ */
 .center-header {
-  padding: 0 0 16px 0;
+  padding: 0 0 12px 0;
   flex-shrink: 0;
 }
 
 .page-heading {
-  margin-bottom: 0;
+  margin-bottom: 4px;
+}
+
+.clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  background: transparent;
+  border: none;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.clear-btn:hover {
+  opacity: 1;
+  color: var(--danger, #c53030);
+}
+
+.clear-btn .icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 
 .center-toolbar {
@@ -809,21 +835,16 @@ input {
   }
   /* Hide all text labels in toolbar at narrow widths */
   .center-toolbar .seg button span,
-  .center-toolbar #snapToggle span,
-  .center-toolbar #bClear span {
+  .center-toolbar #snapToggle span {
     display: none !important;
   }
   .center-toolbar .seg button {
     padding: 6px 10px;
     min-width: auto;
   }
-  .center-toolbar #snapToggle,
-  .center-toolbar #bClear {
+  .center-toolbar #snapToggle {
     padding: 6px 8px;
     min-width: auto;
-  }
-  .center-toolbar #bClear .icon {
-    margin: 0;
   }
 }
 
@@ -843,30 +864,41 @@ input {
 }
 
 .zoom-ctrl {
-  display: flex;
-  gap: 4px;
+  display: inline-flex;
+  height: 32px;
+  border: var(--border-w) solid var(--line-strong);
+  background: var(--surface);
+  overflow: hidden;
 }
 
 .zoom-ctrl button {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: var(--border-w) solid var(--line);
-  background: var(--surface);
+  border: none;
+  border-right: var(--border-w) solid var(--line);
+  background: transparent;
   color: var(--ink-muted);
+}
+
+.zoom-ctrl button:last-child {
+  border-right: none;
 }
 
 .zoom-ctrl button:hover {
   background: var(--desk);
 }
 
-.center-toolbar > .chip {
-  height: 28px;
-  font-size: 12px;
-  padding: 0 8px;
-  min-height: 28px;
+.zoom-ctrl button .icon {
+  opacity: 0.7;
+}
+
+.center-toolbar #snapToggle {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
 }
 
 .pagecap {
