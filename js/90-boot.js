@@ -1031,6 +1031,7 @@
       setupIsFirstVisit = !!isFirstVisit;
       updateSetupUI();
       updateSetupSummary();
+      updateSetupSchematic();
       overlay.hidden = false;
     }
   }
@@ -1272,6 +1273,107 @@
     
     summary.textContent = pps + ' ' + booklet + ' pages per sheet · ' + foldText + ' · feed ' + paper + ' ' + paperOrient;
   }
+
+  function updateSetupSchematic() {
+    var container = document.getElementById('setupSchematic');
+    if (!container) return;
+    
+    var paper = setupState.paper;
+    var booklet = setupState.booklet;
+    var orient = setupState.orient;
+    
+    // Get geometry and imposition from the single source of truth
+    var geo = BL.resolveGeometry(paper, booklet, orient);
+    var format = geo.format;
+    var pps = geo.pagesPerSheet;
+    var imp = BL.computeImposition(1, pps, format);
+    
+    // Sheet dimensions for aspect ratio
+    var sheetW = geo.sheetDims[0];
+    var sheetH = geo.sheetDims[1];
+    
+    // Grid layout
+    var gridCols = geo.grid.cols;
+    var gridRows = geo.grid.rows;
+    var rotatedRow = imp.rotatedRow;
+    
+    // SVG dimensions - scale to fit, max 100px on longest side
+    var maxDim = 100;
+    var scale = Math.min(maxDim / sheetW, maxDim / sheetH);
+    var svgW = Math.round(sheetW * scale);
+    var svgH = Math.round(sheetH * scale);
+    
+    // Colors from CSS tokens (read computed values)
+    var guideColor = getComputedStyle(document.documentElement).getPropertyValue('--guide').trim() || '#717AE4';
+    var lineColor = getComputedStyle(document.documentElement).getPropertyValue('--line').trim() || '#D9DBDE';
+    var inkMuted = getComputedStyle(document.documentElement).getPropertyValue('--ink-muted').trim() || '#565A62';
+    
+    // Cell dimensions
+    var cellW = svgW / gridCols;
+    var cellH = svgH / gridRows;
+    
+    // Helper to render one side
+    function renderSide(sideData, label) {
+      var svg = '<svg width="' + svgW + '" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '" xmlns="http://www.w3.org/2000/svg">';
+      
+      // Sheet outline
+      svg += '<rect x="0.5" y="0.5" width="' + (svgW - 1) + '" height="' + (svgH - 1) + '" fill="white" stroke="' + lineColor + '" stroke-width="1"/>';
+      
+      // Fold lines
+      if (gridCols === 2) {
+        // Vertical fold at center
+        svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2"/>';
+      }
+      if (gridRows === 2) {
+        // Horizontal fold at center
+        svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2"/>';
+      }
+      
+      // Page numbers in cells
+      var fontSize = Math.min(cellW, cellH) * 0.35;
+      var rotGlyphSize = fontSize * 0.5;
+      
+      for (var r = 0; r < gridRows; r++) {
+        for (var c = 0; c < gridCols; c++) {
+          // Get page number - handle both array shapes
+          var pageNum;
+          if (sideData[r] && sideData[r][c] !== undefined) {
+            pageNum = sideData[r][c];
+          } else if (gridRows === 2 && gridCols === 1 && sideData[0]) {
+            // Landscape 1x2: transpose [[4,1]] to [[4],[1]]
+            pageNum = sideData[0][r];
+          } else {
+            pageNum = '?';
+          }
+          
+          var cx = c * cellW + cellW / 2;
+          var cy = r * cellH + cellH / 2;
+          var isRotated = r === rotatedRow;
+          
+          // Page number (rotated 180° if in rotated row)
+          if (isRotated) {
+            svg += '<g transform="rotate(180 ' + cx + ' ' + cy + ')">';
+          }
+          svg += '<text x="' + cx + '" y="' + (cy + fontSize * 0.35) + '" font-family="system-ui, sans-serif" font-size="' + fontSize + '" fill="' + inkMuted + '" text-anchor="middle">' + pageNum + '</text>';
+          if (isRotated) {
+            svg += '</g>';
+          }
+          
+          // Rotation glyph for rotated rows (small ↻ symbol)
+          if (isRotated) {
+            var glyphX = cx + cellW * 0.3;
+            var glyphY = cy - cellH * 0.25;
+            svg += '<text x="' + glyphX + '" y="' + glyphY + '" font-family="system-ui, sans-serif" font-size="' + rotGlyphSize + '" fill="' + guideColor + '" text-anchor="middle">↻</text>';
+          }
+        }
+      }
+      
+      svg += '</svg>';
+      return '<div class="setup-schematic-side"><span class="setup-schematic-label">' + label + '</span>' + svg + '</div>';
+    }
+    
+    container.innerHTML = renderSide(imp.side1, 'Side 1') + renderSide(imp.side2, 'Side 2');
+  }
   
   function setupSetupPanel() {
     var overlay = document.getElementById('setupOverlay');
@@ -1292,6 +1394,7 @@
         }
         updateSetupUI();
         updateSetupSummary();
+        updateSetupSchematic();
       });
     }
     
@@ -1304,6 +1407,7 @@
         setupState.booklet = btn.dataset.v;
         updateSetupUI();
         updateSetupSummary();
+        updateSetupSchematic();
       });
     }
     
@@ -1316,6 +1420,7 @@
         setupState.orient = btn.dataset.v;
         updateSetupUI();
         updateSetupSummary();
+        updateSetupSchematic();
       });
     }
     
