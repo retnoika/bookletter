@@ -244,10 +244,12 @@
 
   // ============ Render sheet previews ============
   function renderSheets() {
-    var container = document.getElementById('sheetPreview');
-    if (!container) return;
+    var container = document.getElementById('sheets');
+    if (!container) {
+      console.error('renderSheets: container #sheets not found');
+      return;
+    }
     container.innerHTML = '';
-
     var pps = BL.pagesPerSheet();
     var sheetCount = Math.ceil(BL.S.pages.length / pps);
 

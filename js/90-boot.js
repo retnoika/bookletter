@@ -163,7 +163,10 @@
   // ============ Sheet tabs rendering ============
   function renderSheetTabs() {
     var container = document.getElementById('sheetTabs');
-    if (!container) return;
+    if (!container) {
+      console.error('renderSheetTabs: container #sheetTabs not found');
+      return;
+    }
     
     var pps = BL.pagesPerSheet();
     var sheetCount = Math.ceil(BL.S.pages.length / pps);
@@ -295,7 +298,10 @@
   // ============ Editor rendering ============
   function renderEditor() {
     var container = document.getElementById('editorPage');
-    if (!container) return;
+    if (!container) {
+      console.error('renderEditor: container #editorPage not found');
+      return;
+    }
     
     var stage = document.getElementById('canvasStage');
     
@@ -486,7 +492,10 @@
   // ============ Render background swatches (5 presets + custom) ============
   function renderSwatches() {
     var container = document.getElementById('swatches');
-    if (!container) return;
+    if (!container) {
+      console.error('renderSwatches: container #swatches not found');
+      return;
+    }
     
     // 5 preset colours: white, cream, yellow, blue, near-black
     var presets = ['#ffffff', '#f5f0e6', '#fef3c0', '#d0e4f0', '#2a2a2a'];
