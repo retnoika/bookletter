@@ -10,6 +10,8 @@ It's meant for zines, mini-comics, programmes and other small runs where a home 
 
 Design 8, 16, 24, 32, or 40 pages on 1 to 5 sheets, portrait or landscape A5, and export any printed side as a 300 dpi PNG for a print shop.
 
+![The Bookletter editor showing a booklet in progress: project settings and layout templates on the left rail, the A5 page canvas in the centre with an image frame, safe-margin guides and page caption, and Layers, Selected Page, Print Safety and Print Plan cards on the right rail](docs/screenshot.png)
+
 ## Use online
 
 Open [retnoika.github.io/bookletter](https://retnoika.github.io/bookletter) in any modern browser.
