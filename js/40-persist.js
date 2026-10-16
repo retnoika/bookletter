@@ -251,6 +251,59 @@
 
   BL.saveProject = saveProject;
 
+  // ============ Project save (async, cancel-detectable) ============
+  // Uses File System Access API if available, falls back to download
+  function saveProjectAsync() {
+    var data = BL.clone(BL.S);
+    var json = JSON.stringify(data, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var filename = (BL.S.title || 'untitled booklet').replace(/[^a-zA-Z0-9_\- ]/g, '') + '.bookletter.json';
+    
+    // Fallback: standard download (cannot detect cancel)
+    function downloadFallback() {
+      return new Promise(function(resolve) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function() { URL.revokeObjectURL(url); }, 1500);
+        BL.toast('Project saved: ' + filename);
+        resolve(true);
+      });
+    }
+    
+    // Try File System Access API (Chrome/Edge) - allows native save dialog
+    // On any error (including user cancel), fall back to download
+    if (window.showSaveFilePicker) {
+      return window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{
+          description: 'Bookletter Project',
+          accept: { 'application/json': ['.json', '.bookletter.json'] }
+        }]
+      }).then(function(handle) {
+        return handle.createWritable();
+      }).then(function(writable) {
+        return writable.write(blob).then(function() {
+          return writable.close();
+        });
+      }).then(function() {
+        BL.toast('Project saved: ' + filename);
+        return true;
+      }).catch(function() {
+        // Any error (user cancel, no gesture, etc.) - fall back to download
+        return downloadFallback();
+      });
+    }
+    
+    return downloadFallback();
+  }
+
+  BL.saveProjectAsync = saveProjectAsync;
+
   // ============ Project open ============
   function validateProject(data) {
     if (!data || typeof data !== 'object') {

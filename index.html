@@ -72,7 +72,6 @@
           <h3 class="section-title">Your Booklet</h3>
           <div class="format-display" id="formatDisplay">
             <span class="format-text" id="formatText">A3 paper → A5 portrait · feed A3 portrait</span>
-            <button type="button" class="btn-link" id="btnNewBooklet">New booklet</button>
           </div>
         </section>
 
@@ -315,7 +314,21 @@
         <p class="setup-summary">Your current booklet will be lost.</p>
         <div class="setup-buttons">
           <button type="button" class="btn-s setup-cancel" id="clearCancel">Cancel</button>
+          <button type="button" class="btn-s" id="clearSaveFirst">Save it first</button>
           <button type="button" class="btn-primary btn-danger" id="clearConfirm">Clear everything</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Replace confirmation (guard for New booklet Create) -->
+    <div class="setup-overlay" id="replaceOverlay" hidden>
+      <div class="setup-panel setup-panel-sm">
+        <h2 class="setup-title">Replace your current booklet?</h2>
+        <p class="setup-summary">Your current booklet will be lost unless you save it first.</p>
+        <div class="setup-buttons">
+          <button type="button" class="btn-s setup-cancel" id="replaceCancel">Cancel</button>
+          <button type="button" class="btn-s" id="replaceSaveFirst">Save it first</button>
+          <button type="button" class="btn-primary btn-danger" id="replaceConfirm">Replace</button>
         </div>
       </div>
     </div>

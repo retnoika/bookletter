@@ -11,6 +11,9 @@
   // ============ Active sheet (1-based) ============
   var activeSheet = 1;
 
+  // ============ Pending create params (for guard dialog) ============
+  var pendingCreateParams = null;
+
   // ============ Empty state (no booklet yet) ============
   var hasBooklet = false;
   
@@ -1101,12 +1104,22 @@
   function setupClearConfirm() {
     var btnCancel = document.getElementById('clearCancel');
     var btnConfirm = document.getElementById('clearConfirm');
+    var btnSaveFirst = document.getElementById('clearSaveFirst');
     
     if (btnCancel) {
       btnCancel.addEventListener('click', hideClearConfirm);
     }
     if (btnConfirm) {
       btnConfirm.addEventListener('click', confirmClear);
+    }
+    if (btnSaveFirst) {
+      btnSaveFirst.addEventListener('click', function() {
+        BL.saveProjectAsync().then(function() {
+          confirmClear();
+        }).catch(function() {
+          // User cancelled save - do nothing, leave dialog open
+        });
+      });
     }
     
     // Escape key closes confirm
@@ -1116,6 +1129,78 @@
         if (overlay && !overlay.hidden) {
           e.preventDefault();
           hideClearConfirm();
+        }
+      }
+    });
+  }
+  
+  // ============ Content check (for guard dialogs) ============
+  function hasContent() {
+    // Check if title is not the default
+    if (BL.S.title && BL.S.title !== 'untitled booklet') {
+      return true;
+    }
+    // Check if any page has layers
+    if (BL.S.pages && BL.S.pages.length > 0) {
+      for (var i = 0; i < BL.S.pages.length; i++) {
+        if (BL.S.pages[i].layers && BL.S.pages[i].layers.length > 0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  // ============ Replace Guard Dialog ============
+  function showReplaceGuard() {
+    var overlay = document.getElementById('replaceOverlay');
+    if (overlay) overlay.hidden = false;
+  }
+  
+  function hideReplaceGuard() {
+    var overlay = document.getElementById('replaceOverlay');
+    if (overlay) overlay.hidden = true;
+    pendingCreateParams = null;
+  }
+  
+  function doReplace() {
+    if (!pendingCreateParams) return;
+    var params = pendingCreateParams;
+    pendingCreateParams = null;
+    hideReplaceGuard();
+    hideSetupPanel();
+    createNewBooklet(params.paper, params.booklet, params.orient);
+    showEditor();
+  }
+  
+  function setupReplaceGuard() {
+    var btnCancel = document.getElementById('replaceCancel');
+    var btnConfirm = document.getElementById('replaceConfirm');
+    var btnSaveFirst = document.getElementById('replaceSaveFirst');
+    
+    if (btnCancel) {
+      btnCancel.addEventListener('click', hideReplaceGuard);
+    }
+    if (btnConfirm) {
+      btnConfirm.addEventListener('click', doReplace);
+    }
+    if (btnSaveFirst) {
+      btnSaveFirst.addEventListener('click', function() {
+        BL.saveProjectAsync().then(function() {
+          doReplace();
+        }).catch(function() {
+          // User cancelled save - do nothing, leave dialog open
+        });
+      });
+    }
+    
+    // Escape key closes guard
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var overlay = document.getElementById('replaceOverlay');
+        if (overlay && !overlay.hidden) {
+          e.preventDefault();
+          hideReplaceGuard();
         }
       }
     });
@@ -1240,13 +1325,24 @@
       btnCancel.addEventListener('click', cancelSetup);
     }
     
-    // Create button
+    // Create button - with content guard
     var btnCreate = document.getElementById('setupCreate');
     if (btnCreate) {
       btnCreate.addEventListener('click', function() {
-        createNewBooklet(setupState.paper, setupState.booklet, setupState.orient);
-        hideSetupPanel();
-        showEditor();
+        // If current booklet has content, show guard dialog
+        if (hasBooklet && hasContent()) {
+          pendingCreateParams = {
+            paper: setupState.paper,
+            booklet: setupState.booklet,
+            orient: setupState.orient
+          };
+          showReplaceGuard();
+        } else {
+          // No content - replace silently
+          createNewBooklet(setupState.paper, setupState.booklet, setupState.orient);
+          hideSetupPanel();
+          showEditor();
+        }
       });
     }
     
@@ -1318,14 +1414,7 @@
     // Setup panel handlers
     setupSetupPanel();
     setupClearConfirm();
-    
-    // New booklet link in rail
-    var btnNewBooklet = document.getElementById('btnNewBooklet');
-    if (btnNewBooklet) {
-      btnNewBooklet.addEventListener('click', function() {
-        showSetupPanel();
-      });
-    }
+    setupReplaceGuard();
     
     // Page count segment
     var segPages = document.getElementById('segPages');
