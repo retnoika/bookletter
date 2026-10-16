@@ -142,7 +142,8 @@ input {
 #app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100vh;            /* Fallback for browsers without dvh */
+  height: 100dvh;           /* Dynamic viewport height - iOS Safari safe */
   overflow: hidden;
 }
 
@@ -2034,7 +2035,7 @@ input {
   .rail-center {
     order: 2;
     padding: 16px;
-    overflow: visible;
+    overflow-y: auto;       /* Constrain canvas so it doesn't escape grid cell */
   }
   
   .rail-right {
