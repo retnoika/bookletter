@@ -275,8 +275,7 @@
       });
     }
     
-    // Try File System Access API (Chrome/Edge) - allows native save dialog
-    // On any error (including user cancel), fall back to download
+    // Try File System Access API (Chrome/Edge) - allows cancel detection
     if (window.showSaveFilePicker) {
       return window.showSaveFilePicker({
         suggestedName: filename,
@@ -293,8 +292,12 @@
       }).then(function() {
         BL.toast('Project saved: ' + filename);
         return true;
-      }).catch(function() {
-        // Any error (user cancel, no gesture, etc.) - fall back to download
+      }).catch(function(err) {
+        // User cancelled file picker (AbortError) - reject so caller knows
+        if (err.name === 'AbortError') {
+          return Promise.reject(err);
+        }
+        // Other errors (SecurityError, no gesture, etc.) - fall back to download
         return downloadFallback();
       });
     }
