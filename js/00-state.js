@@ -6,6 +6,9 @@
   'use strict';
   window.BL = window.BL || {};
 
+
+  // ============ Version ============
+  BL.VERSION = '0.9.0';
   // ============ Paper and Booklet Constants ============
   // Paper sizes (portrait w×h)
   var SHEET_A3   = [297, 420];

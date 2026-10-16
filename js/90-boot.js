@@ -1879,6 +1879,9 @@
       activeSheet = getSheetForPage(BL.cur);
       
       setupTopBar();
+      // Set version in rail
+      var versionLine = document.getElementById('versionLine');
+      if (versionLine) versionLine.textContent = 'Version ' + BL.VERSION;
       setupTools();
       BL.setupEditor();
       if (BL.setupGestures) BL.setupGestures();

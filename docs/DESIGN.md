@@ -49,6 +49,8 @@ Layer = {
 }
 ```
 
+`BL.VERSION` is the app's version string, shown in the left rail. It is bumped in the same commit as each release tag.
+
 ### Rendering
 
 Pages render via a `--mm` CSS variable. The same `renderPage()` function works at any scale:
