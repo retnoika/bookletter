@@ -1297,16 +1297,16 @@
     var gridRows = geo.grid.rows;
     var rotatedRow = imp.rotatedRow;
     
-    // SVG dimensions - scale to fit, max 100px on longest side
-    var maxDim = 100;
+    // SVG dimensions - scale to fit, max 140px on longest side
+    var maxDim = 140;
     var scale = Math.min(maxDim / sheetW, maxDim / sheetH);
     var svgW = Math.round(sheetW * scale);
     var svgH = Math.round(sheetH * scale);
     
-    // Colors from CSS tokens (read computed values)
+    // Colors from CSS tokens
     var guideColor = getComputedStyle(document.documentElement).getPropertyValue('--guide').trim() || '#717AE4';
-    var lineColor = getComputedStyle(document.documentElement).getPropertyValue('--line').trim() || '#D9DBDE';
-    var inkMuted = getComputedStyle(document.documentElement).getPropertyValue('--ink-muted').trim() || '#565A62';
+    var lineStrong = getComputedStyle(document.documentElement).getPropertyValue('--line-strong').trim() || '#B0B3B9';
+    var inkColor = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#161719';
     
     // Cell dimensions
     var cellW = svgW / gridCols;
@@ -1316,9 +1316,8 @@
     function renderSide(sideData, label) {
       var svg = '<svg width="' + svgW + '" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '" xmlns="http://www.w3.org/2000/svg">';
       
-      // Sheet outline
-      svg += '<rect x="0.5" y="0.5" width="' + (svgW - 1) + '" height="' + (svgH - 1) + '" fill="white" stroke="' + lineColor + '" stroke-width="1"/>';
-      
+      // Sheet outline (stronger border)
+      svg += '<rect x="0.5" y="0.5" width="' + (svgW - 1) + '" height="' + (svgH - 1) + '" fill="white" stroke="' + lineStrong + '" stroke-width="1.5"/>';
       // Fold lines
       if (gridCols === 2) {
         // Vertical fold at center
@@ -1329,10 +1328,9 @@
         svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2"/>';
       }
       
-      // Page numbers in cells
-      var fontSize = Math.min(cellW, cellH) * 0.35;
-      var rotGlyphSize = fontSize * 0.5;
-      
+      // Page numbers in cells - larger and darker for legibility
+      var fontSize = Math.min(cellW, cellH) * 0.45;
+      var rotGlyphSize = fontSize * 0.7;
       for (var r = 0; r < gridRows; r++) {
         for (var c = 0; c < gridCols; c++) {
           // Get page number - handle both array shapes
@@ -1354,7 +1352,7 @@
           if (isRotated) {
             svg += '<g transform="rotate(180 ' + cx + ' ' + cy + ')">';
           }
-          svg += '<text x="' + cx + '" y="' + (cy + fontSize * 0.35) + '" font-family="system-ui, sans-serif" font-size="' + fontSize + '" fill="' + inkMuted + '" text-anchor="middle">' + pageNum + '</text>';
+          svg += '<text x="' + cx + '" y="' + (cy + fontSize * 0.35) + '" font-family="system-ui, sans-serif" font-size="' + fontSize + '" fill="' + inkColor + '" text-anchor="middle">' + pageNum + '</text>';
           if (isRotated) {
             svg += '</g>';
           }
