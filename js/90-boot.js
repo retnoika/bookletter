@@ -1328,30 +1328,16 @@
       
       // Sheet outline (stronger border)
       svg += '<rect x="0.5" y="0.5" width="' + (svgW - 1) + '" height="' + (svgH - 1) + '" fill="white" stroke="' + lineStrong + '" stroke-width="1.5"/>';
-      // Fold and cut lines
-      // Rule: FOLD runs PARALLEL to the sheet's LONG edge; CUT is perpendicular.
-      // Derived from sheetW/sheetH, not from rotatedRow.
-      var isPortrait = sheetH > sheetW;
+      // Fold and cut lines - orientation-independent rule:
+      // FOLD = vertical midline (dashed blue)
+      // CUT = horizontal midline (solid pink)
       if (gridCols === 2 && gridRows === 2) {
-        // 2x2 format: both fold and cut
-        if (isPortrait) {
-          // Portrait: vertical fold (dashed blue), horizontal cut (solid pink)
-          svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
-          svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + cutColor + '" stroke-width="1" opacity="0.6"/>';
-        } else {
-          // Landscape: horizontal fold (dashed blue), vertical cut (solid pink)
-          svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
-          svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + cutColor + '" stroke-width="1" opacity="0.6"/>';
-        }
+        // 2x2: vertical fold, horizontal cut
+        svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
+        svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + cutColor + '" stroke-width="1" opacity="0.6"/>';
       } else if (gridCols === 2 || gridRows === 2) {
-        // 1x2 format: single fold line (same long-edge rule)
-        if (isPortrait) {
-          // Portrait: vertical fold
-          svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
-        } else {
-          // Landscape: horizontal fold
-          svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
-        }
+        // 1x2: single vertical fold (inferred from same rule)
+        svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
       }
       
       // Page numbers in cells - larger and darker for legibility

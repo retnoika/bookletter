@@ -145,29 +145,16 @@
     }
 
     // Fold and cut lines (preview only)
-    // Rule: FOLD runs PARALLEL to the sheet's LONG edge; CUT is perpendicular.
-    // Derived from sheet dimensions (sw, sh), not from rotatedRow.
-    // Portrait (sh > sw): fold = vertical, cut = horizontal
-    // Landscape (sw >= sh): fold = horizontal, cut = vertical
+    // Orientation-independent rule:
+    // FOLD = vertical midline (dashed blue)
+    // CUT = horizontal midline (solid pink)
     if (opts.tags) {
-      var isPortrait = sh > sw;
       if (format === '2x2') {
-        if (isPortrait) {
-          // Portrait: vertical fold, horizontal cut
-          sheetEl.appendChild(BL.el('div', 'foldline v'));
-          sheetEl.appendChild(BL.el('div', 'cutline h'));
-        } else {
-          // Landscape: horizontal fold, vertical cut
-          sheetEl.appendChild(BL.el('div', 'foldline h'));
-          sheetEl.appendChild(BL.el('div', 'cutline v'));
-        }
+        sheetEl.appendChild(BL.el('div', 'foldline v'));
+        sheetEl.appendChild(BL.el('div', 'cutline h'));
       } else {
-        // 1x2: single fold line, same long-edge rule
-        if (isPortrait) {
-          sheetEl.appendChild(BL.el('div', 'foldline v'));
-        } else {
-          sheetEl.appendChild(BL.el('div', 'foldline h'));
-        }
+        // 1x2: single fold line on vertical midline (inferred from same rule)
+        sheetEl.appendChild(BL.el('div', 'foldline v'));
       }
     }
 
