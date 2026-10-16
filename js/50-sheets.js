@@ -145,26 +145,28 @@
     }
 
     // Fold and cut lines (preview only)
-    // For 2x2: rotatedRow >= 0 means top row is rotated, so HORIZONTAL midline is the FOLD
-    // (it flips those pages), and VERTICAL midline is the CUT/SLIT
-    // For 1x2: rotatedRow = -1 means no rotation, single line is always a FOLD (no slit)
+    // Rule: FOLD runs PARALLEL to the sheet's LONG edge; CUT is perpendicular.
+    // Derived from sheet dimensions (sw, sh), not from rotatedRow.
+    // Portrait (sh > sw): fold = vertical, cut = horizontal
+    // Landscape (sw >= sh): fold = horizontal, cut = vertical
     if (opts.tags) {
+      var isPortrait = sh > sw;
       if (format === '2x2') {
-        // Horizontal = fold (flips the rotated row), Vertical = cut/slit
-        var foldH = BL.el('div', 'foldline h');
-        var cutV = BL.el('div', 'cutline v');
-        sheetEl.appendChild(foldH);
-        sheetEl.appendChild(cutV);
-      } else {
-        // Single fold line for 1x2 (no slit needed)
-        if (gridDims.rows === 1) {
-          // Pages side by side -> vertical fold
-          var foldV2 = BL.el('div', 'foldline v');
-          sheetEl.appendChild(foldV2);
+        if (isPortrait) {
+          // Portrait: vertical fold, horizontal cut
+          sheetEl.appendChild(BL.el('div', 'foldline v'));
+          sheetEl.appendChild(BL.el('div', 'cutline h'));
         } else {
-          // Pages stacked -> horizontal fold
-          var foldH2 = BL.el('div', 'foldline h');
-          sheetEl.appendChild(foldH2);
+          // Landscape: horizontal fold, vertical cut
+          sheetEl.appendChild(BL.el('div', 'foldline h'));
+          sheetEl.appendChild(BL.el('div', 'cutline v'));
+        }
+      } else {
+        // 1x2: single fold line, same long-edge rule
+        if (isPortrait) {
+          sheetEl.appendChild(BL.el('div', 'foldline v'));
+        } else {
+          sheetEl.appendChild(BL.el('div', 'foldline h'));
         }
       }
     }
