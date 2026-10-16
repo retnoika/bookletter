@@ -254,15 +254,23 @@
     var sheetCount = Math.ceil(BL.S.pages.length / pps);
 
     for (var k = 1; k <= sheetCount; k++) {
-      var label = BL.el('div', 'sheet-label');
-      label.textContent = 'Sheet ' + k + ' · Front';
-      container.appendChild(label);
-      container.appendChild(buildSheet(k, 1, { tags: true }));
+      // Front side
+      var fig1 = document.createElement('figure');
+      fig1.className = 'sheet-item';
+      var cap1 = document.createElement('figcaption');
+      cap1.textContent = 'Sheet ' + k + ' · Front';
+      fig1.appendChild(cap1);
+      fig1.appendChild(buildSheet(k, 1, { tags: true }));
+      container.appendChild(fig1);
 
-      var label2 = BL.el('div', 'sheet-label');
-      label2.textContent = 'Sheet ' + k + ' · Back';
-      container.appendChild(label2);
-      container.appendChild(buildSheet(k, 2, { tags: true }));
+      // Back side
+      var fig2 = document.createElement('figure');
+      fig2.className = 'sheet-item';
+      var cap2 = document.createElement('figcaption');
+      cap2.textContent = 'Sheet ' + k + ' · Back';
+      fig2.appendChild(cap2);
+      fig2.appendChild(buildSheet(k, 2, { tags: true }));
+      container.appendChild(fig2);
     }
 
     updateSheetNote();

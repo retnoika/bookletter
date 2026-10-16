@@ -1735,6 +1735,9 @@ input {
 .sheets .sheet {
   background: var(--paper);
   position: relative;
+  width: calc(var(--mm) * var(--sw));
+  height: calc(var(--mm) * var(--sh));
+  max-width: 100%;
 }
 
 /* ============ Shared Page Rendering ============ */
