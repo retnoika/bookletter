@@ -1314,6 +1314,7 @@
     
     // Colors from CSS tokens
     var guideColor = getComputedStyle(document.documentElement).getPropertyValue('--guide').trim() || '#717AE4';
+    var cutColor = getComputedStyle(document.documentElement).getPropertyValue('--candy-pink-750').trim() || '#DE505B';
     var lineStrong = getComputedStyle(document.documentElement).getPropertyValue('--line-strong').trim() || '#B0B3B9';
     var inkColor = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#161719';
     
@@ -1327,14 +1328,19 @@
       
       // Sheet outline (stronger border)
       svg += '<rect x="0.5" y="0.5" width="' + (svgW - 1) + '" height="' + (svgH - 1) + '" fill="white" stroke="' + lineStrong + '" stroke-width="1.5"/>';
-      // Fold lines
-      if (gridCols === 2) {
-        // Vertical fold at center
-        svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2"/>';
-      }
-      if (gridRows === 2) {
-        // Horizontal fold at center
-        svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2"/>';
+      // Fold and cut lines
+      // For 2x2: horizontal = fold (rotated row flips across it), vertical = cut/slit
+      // For 1x2: single line is always a fold (no slit needed)
+      if (gridCols === 2 && gridRows === 2) {
+        // 2x2: vertical = cut (solid pink), horizontal = fold (dashed blue)
+        svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + cutColor + '" stroke-width="1" opacity="0.6"/>';
+        svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
+      } else if (gridCols === 2) {
+        // 1x2 portrait: vertical fold
+        svg += '<line x1="' + (svgW / 2) + '" y1="0" x2="' + (svgW / 2) + '" y2="' + svgH + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
+      } else if (gridRows === 2) {
+        // 1x2 landscape: horizontal fold
+        svg += '<line x1="0" y1="' + (svgH / 2) + '" x2="' + svgW + '" y2="' + (svgH / 2) + '" stroke="' + guideColor + '" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>';
       }
       
       // Page numbers in cells - larger and darker for legibility
