@@ -259,14 +259,16 @@
 
     <!-- Sheets overlay (Preview) -->
     <div class="sheets-overlay" id="sheetsOverlay" hidden>
-      <div class="sheets-overlay-header">
-        <h2>Sheet Preview</h2>
-        <button class="btn-s" id="bCloseSheets">Close</button>
+      <div class="sheets-overlay-content">
+        <div class="sheets-overlay-header">
+          <h2>Sheet Preview</h2>
+          <button class="btn-s" id="bCloseSheets">Close</button>
+        </div>
+        <div class="sheets-overlay-hint">
+          <p class="sub">One sheet, printed on both sides. Top-row pages are upside down on purpose: they turn upright when you fold. Dashed blue lines are the folds and are not printed.</p>
+        </div>
+        <div class="sheets" id="sheets"></div>
       </div>
-      <div class="sheets-overlay-hint">
-        <p class="sub">One sheet, printed on both sides. Top-row pages are upside down on purpose: they turn upright when you fold. Dashed blue lines are the folds and are not printed.</p>
-      </div>
-      <div class="sheets" id="sheets"></div>
     </div>
 
     <!-- Setup panel (New booklet) -->
