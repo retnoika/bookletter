@@ -2460,19 +2460,15 @@ input {
 
 .setup-buttons {
   display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-.setup-cancel {
-  flex: 0 0 auto;
-  padding: 14px 24px;
-  font-size: 12px;
-}
-
-.setup-create {
-  flex: 1;
-  padding: 14px 24px;
-  font-size: 12px;
+.setup-buttons button {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 24px;
+  font-size: 13px;
 }
 
 /* Credit line in rail */
