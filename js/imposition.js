@@ -432,27 +432,31 @@
       if (pos.col === 1) unsafeSides.push('right');
     } else {
       // 1x2: each page spans full width or height, so 3 sides are at edge
+      // The fold axis is VERTICAL (fold = vertical midline), so:
+      // - Pages are side by side with a vertical fold between them
+      // - Top and bottom are always sheet edges
+      // - Left or right depends on which cell the page is in
       if (gridRows === 1) {
-        // Pages side by side (portrait booklet on landscape paper)
-        // Left and right are always at edge; one of top/bottom depends on side
-        unsafeSides.push('left', 'right');
-        if (pos.side === 1) {
-          // Side 1: pages at bottom (page 1 is front cover at bottom-right)
-          unsafeSides.push('bottom');
+        // Pages side by side (portrait booklet)
+        // Vertical fold between them: top/bottom are always edges
+        unsafeSides.push('top', 'bottom');
+        if (pos.col === 0) {
+          // Left cell: left is sheet edge, right is fold
+          unsafeSides.push('left');
         } else {
-          // Side 2: after flip, pages at top
-          unsafeSides.push('top');
+          // Right cell: right is sheet edge, left is fold
+          unsafeSides.push('right');
         }
       } else {
         // Pages stacked (landscape booklet on portrait paper)
-        // Top and bottom are always at edge; one of left/right depends on side
-        unsafeSides.push('top', 'bottom');
-        if (pos.side === 1) {
-          // Side 1: pages on right side
-          unsafeSides.push('right');
+        // Horizontal fold between them: left/right are always edges
+        unsafeSides.push('left', 'right');
+        if (pos.row === 0) {
+          // Top cell: top is sheet edge, bottom is fold
+          unsafeSides.push('top');
         } else {
-          // Side 2: after flip, pages on left
-          unsafeSides.push('left');
+          // Bottom cell: bottom is sheet edge, top is fold
+          unsafeSides.push('bottom');
         }
       }
     }
