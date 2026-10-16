@@ -1,6 +1,6 @@
 # Bookletter Design Notes
 
-Bookletter is a browser-only tool for designing 8, 16, 24, 32, or 40-page A5 booklets that print on 1 to 5 A3 sheets (both sides), fold twice, nest the sections, and become a hand-bound booklet.
+Bookletter is a browser-only tool for designing booklets. The 8-page format (A3 → A5) produces 8, 16, 24, 32, or 40-page A5 booklets on 1 to 5 A3 sheets. The 4-page format (A3 → A4 or A4 → A5) produces a 4-page booklet on one sheet. Print both sides, fold, nest the sections, and you have a hand-bound booklet.
 
 ## Architecture
 
@@ -11,7 +11,7 @@ css/app.css          All styles
 js/00-state.js       State model, defaults, factories, undo/redo
 js/10-templates.js   Layout templates, shape SVG library
 js/20-render.js      DOM rendering (shared by editor, thumbnails, print)
-js/30-editor.js      Selection, inspector, keyboard, photos
+js/30-editor.js      Selection, inspector, keyboard, images
 js/40-persist.js     Autosave, project I/O
 js/90-boot.js        Boot, wiring, test API
 ```
@@ -25,11 +25,11 @@ State = {
   v: 2,                          // schema version
   title: 'untitled booklet',
   orient: 'portrait'|'landscape', // page orientation
-  sheet: 'A3'|'SRA3',            // print sheet size
+  sheet: 'A3'|'A4',             // print sheet size (SRA3 legacy only)
   guide: true,                   // show margin guide
   safe: 8,                       // mm safe margin
   nums: false,                   // show page numbers
-  pages: [Page × 8|16|24]        // 8, 16, or 24 pages (1, 2, or 3 sheets)
+  pages: [Page × 4|8|16|24|32|40] // 4 to 40 pages (1 to 5 sheets)
 }
 
 Page = {
@@ -65,13 +65,13 @@ These are the authoritative facts for sheet layout and folding. Do not modify.
 ### Page Geometry
 
 - **8, 16, 24, 32, or 40 pages per booklet** (1 to 5 A3 sheets)
-- Page = A5: portrait **148 × 210 mm** or landscape **210 × 148 mm**
+- Page = A5: portrait **148 × 210 mm** or landscape **210 × 148 mm**; A4: portrait **210 × 297 mm**
 - One A3 sheet (**297 × 420 mm**) holds a 2×2 block of pages per side = 4 per side = **8 total per sheet**
 
 ### Sheet Sizes
 
 - **A3**: 297 × 420 mm — exactly four A5 pages, no bleed, no room for marks
-- **SRA3**: 320 × 450 mm — room for crop marks, fold marks, and bleed
+- **SRA3**: 320 × 450 mm — legacy only, not offered in current chooser; projects saved with it still work
 
 ### Duplex Printing
 
@@ -220,11 +220,11 @@ Printing via the browser produces a 2-page PDF where each page corresponds to on
 ## Current Status
 
 **Implemented:**
-- Editor with photo, text, and shape layers
+- Editor with image, text, and shape layers
 - 8 layout templates (additive application to current page)
 - Direct manipulation: move, resize, rotate layers with mouse or touch
 - Snapping to margins, centers, and other layer edges
-- Photo pan inside frame (Alt+drag or inspector toggle)
+- Image pan inside frame (Alt+drag or inspector toggle)
 - Two-finger pinch to scale on touch devices
 - Undo/redo (40-entry stack)
 - Keyboard shortcuts (delete, nudge, duplicate, save)
@@ -232,10 +232,8 @@ Printing via the browser produces a 2-page PDF where each page corresponds to on
 - Project save/open (.bookletter.json files)
 - Imposition preview with live sheet thumbnails
 - Print path: `@page` sized dynamically to sheet, multi-page output for multi-sheet booklets
-- A3 and SRA3 sheet stock selection
-- Crop and fold marks on SRA3
-- Bleed (0mm or 3mm) on SRA3; refused on A3
+- A3 and A4 paper; A5 and A4 booklet sizes
+- 4/8/16/24/32/40 page booklets with correct imposition
 - Fold instructions adapted to current stock and orientation
-- 8/16/24/32/40 page booklets (1-5 sheets) with nested saddle-stitch imposition
 - 300 DPI PNG export per sheet side
-- Print-safety warnings for safe-margin crossings and low-resolution photos
+- Print-safety warnings for safe-margin crossings and low-resolution images
