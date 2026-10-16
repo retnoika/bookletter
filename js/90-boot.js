@@ -1250,11 +1250,29 @@
     }
     
     // Update orientation buttons
+    // 4-page formats (A3->A4, A4->A5) are portrait only; 8-page (A3->A5) allows both
     var segOrient = document.getElementById('setupOrient');
+    var orientHelper = document.getElementById('orientHelper');
+    var is4Page = !(setupState.paper === 'A3' && setupState.booklet === 'A5');
+    
+    // If current orientation is landscape but invalid for this format, switch to portrait
+    if (is4Page && setupState.orient === 'landscape') {
+      setupState.orient = 'portrait';
+    }
+    
     if (segOrient) {
       segOrient.querySelectorAll('button').forEach(function(btn) {
+        var isLandscape = btn.dataset.v === 'landscape';
+        var valid = !isLandscape || !is4Page;
+        btn.disabled = !valid;
+        btn.setAttribute('aria-disabled', !valid);
         btn.classList.toggle('active', btn.dataset.v === setupState.orient);
       });
+    }
+    
+    // Show/hide helper text
+    if (orientHelper) {
+      orientHelper.hidden = !is4Page;
     }
   }
   

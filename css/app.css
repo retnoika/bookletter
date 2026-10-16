@@ -2477,6 +2477,17 @@ input {
   margin-bottom: 8px;
 }
 
+.setup-helper {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
+.setup-helper[hidden] {
+  display: none;
+}
+
 .setup-summary {
   font-size: 14px;
   color: var(--ink-muted);
