@@ -56,6 +56,15 @@
   }
   BL.validPageCounts = validPageCounts;
 
+  /**
+   * Get all valid page counts across all formats (for validation).
+   * Union of 2x2 [8,16,24,32,40] and 1x2 [4,8,12,16,20].
+   */
+  function allValidPageCounts() {
+    return [4, 8, 12, 16, 20, 24, 32, 40];
+  }
+  BL.allValidPageCounts = allValidPageCounts;
+
   // Legacy: BL.VALID_PAGE_COUNTS for backward compatibility
   // Returns the current valid counts (may change when format changes)
   Object.defineProperty(BL, 'VALID_PAGE_COUNTS', {

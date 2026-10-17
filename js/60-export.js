@@ -414,7 +414,7 @@
       var page = BL.S.pages[p];
       
       // Get page-specific safe bands
-      var bands = BL.pageSafeBands(p, BL.S.pages.length, BL.S.orient, BL.S.sheet, BL.S.safe);
+      var bands = BL.pageSafeBands(p, BL.S.pages.length, BL.S.orient, BL.S.paper || BL.S.sheet, BL.S.safe, BL.S.booklet);
       
       for (var i = 0; i < page.layers.length; i++) {
         var layer = page.layers[i];

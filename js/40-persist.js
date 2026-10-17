@@ -158,10 +158,9 @@
   BL.updateSavedStatus = updateSavedStatus;
 
   // ============ Load saved state ============
-  // Helper: check if page count is valid (multiples of 4, up to 24)
+  // Helper: check if page count is valid (derived from BL.allValidPageCounts)
   function isValidPageCount(len) {
-    // Accept 4, 8, 12, 16, 20, 24 (multiples of 4 up to 24)
-    return len >= 4 && len <= 24 && len % 4 === 0;
+    return BL.allValidPageCounts().indexOf(len) !== -1;
   }
 
   // Helper: migrate old projects
@@ -313,7 +312,7 @@
       return { error: 'Invalid file format' };
     }
     if (!Array.isArray(data.pages) || !isValidPageCount(data.pages.length)) {
-      return { error: 'Not a Bookletter project: must have 4, 8, 12, 16, or 24 pages' };
+      return { error: 'Not a Bookletter project: must have ' + BL.allValidPageCounts().join(', ') + ' pages' };
     }
     
     // Apply migration (adds paper/booklet fields, etc.)
