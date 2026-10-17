@@ -54,8 +54,8 @@
         // Keep first section (Project Name), hide others
         if (idx > 0) sec.hidden = true;
       });
-      // Hide credit too
-      var credit = leftRail.querySelector('.rail-credit');
+      // Hide credit line (but not version line)
+      var credit = leftRail.querySelector('.rail-credit:not(#versionLine)');
       if (credit) credit.hidden = true;
     }
     
@@ -103,7 +103,7 @@
       sections.forEach(function(sec) {
         sec.hidden = false;
       });
-      var credit = leftRail.querySelector('.rail-credit');
+      var credit = leftRail.querySelector('.rail-credit:not(#versionLine)');
       if (credit) credit.hidden = false;
     }
     
@@ -671,6 +671,7 @@
   // ============ Render all ============
   function renderAll() {
     updateTopBar();
+    updateSegmentStates();
     renderSheetTabs();
     renderStrip();
     renderTools();
